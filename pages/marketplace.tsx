@@ -10,6 +10,7 @@ interface Product {
   price: number;
   image_url?: string | null;
   created_at: string;
+  sold?: boolean;
 }
 
 const mockFallbackProducts = [
@@ -36,6 +37,7 @@ export default function MarketplacePage() {
         const { data, error } = await supabase
           .from("products")
           .select("*")
+          .eq("sold", false)
           .order("created_at", { ascending: false });
 
         if (error || !data || data.length === 0) {

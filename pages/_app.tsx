@@ -1,6 +1,7 @@
 import type { AppProps } from "next/app";
 import { useRouter } from "next/router";
 import { AuthProvider } from "../lib/AuthContext";
+import { CartProvider } from "../lib/CartContext";
 import ShellChrome from "../components/ShellChrome";
 import AdminLayout from "../components/AdminLayout";
 import "../styles/globals.css";
@@ -40,15 +41,17 @@ export default function App({ Component, pageProps }: AppProps) {
       className={`${sourceSerif.variable} ${hanken.variable} ${inter.variable} ${jbmono.variable} bg-[#FBF9F8] text-[#1B1C1C] antialiased min-h-screen flex flex-col font-sans`}
     >
       <AuthProvider>
-        {isAdminPath ? (
-          <AdminLayout>
-            <Component {...pageProps} />
-          </AdminLayout>
-        ) : (
-          <ShellChrome>
-            <Component {...pageProps} />
-          </ShellChrome>
-        )}
+        <CartProvider>
+          {isAdminPath ? (
+            <AdminLayout>
+              <Component {...pageProps} />
+            </AdminLayout>
+          ) : (
+            <ShellChrome>
+              <Component {...pageProps} />
+            </ShellChrome>
+          )}
+        </CartProvider>
       </AuthProvider>
     </div>
   );
