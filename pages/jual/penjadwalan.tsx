@@ -1,3 +1,5 @@
+
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "../../lib/AuthContext";
@@ -163,13 +165,12 @@ export default function PenjadwalanPage() {
                     key={i}
                     disabled={c.faded}
                     onClick={() => setSelectedDate(c.day)}
-                    className={`h-12 rounded-lg font-body text-sm transition-colors cursor-pointer ${
-                      c.faded
-                        ? "text-[#DBDAD9] cursor-default"
-                        : c.day === selectedDate
+                    className={`h-12 rounded-lg font-body text-sm transition-colors cursor-pointer ${c.faded
+                      ? "text-[#DBDAD9] cursor-default"
+                      : c.day === selectedDate
                         ? "bg-[#735A39] text-white font-bold shadow-xs"
                         : "text-[#1B1C1C] hover:bg-[#F6F3F2]"
-                    }`}
+                      }`}
                   >
                     {c.day}
                   </button>
@@ -190,9 +191,8 @@ export default function PenjadwalanPage() {
                   type="button"
                   key={t.label}
                   onClick={() => setSelectedTime(i)}
-                  className={`rounded-xl p-4 flex justify-between items-center border transition-colors cursor-pointer ${
-                    i === selectedTime ? "bg-[#C5A67F]/40 border-[#735A39] border-2" : "bg-white border-[#D1C4B8] hover:border-[#735A39]"
-                  }`}
+                  className={`rounded-xl p-4 flex justify-between items-center border transition-colors cursor-pointer ${i === selectedTime ? "bg-[#C5A67F]/40 border-[#735A39] border-2" : "bg-white border-[#D1C4B8] hover:border-[#735A39]"
+                    }`}
                 >
                   <div className="text-left">
                     <div className="font-body text-sm font-bold text-[#1B1C1C]">{t.label}</div>
@@ -218,9 +218,8 @@ export default function PenjadwalanPage() {
                   type="button"
                   key={i}
                   onClick={() => setSelectedAddress(i)}
-                  className={`rounded-xl p-4 flex flex-col gap-1.5 text-left border transition-colors cursor-pointer ${
-                    i === selectedAddress ? "bg-[#C5A67F]/40 border-[#735A39] border-2" : "bg-white border-[#D1C4B8] hover:border-[#735A39]"
-                  }`}
+                  className={`rounded-xl p-4 flex flex-col gap-1.5 text-left border transition-colors cursor-pointer ${i === selectedAddress ? "bg-[#C5A67F]/40 border-[#735A39] border-2" : "bg-white border-[#D1C4B8] hover:border-[#735A39]"
+                    }`}
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-2">
