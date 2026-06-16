@@ -25,6 +25,16 @@ export default function PenjadwalanPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  function formatSelectedDate(dateObj: Date | null) {
+    if (!dateObj) return "";
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    return `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -45,9 +55,12 @@ export default function PenjadwalanPage() {
     startLimit.setDate(today.getDate() + 3);
     startLimit.setHours(0, 0, 0, 0);
 
-    // Calculate month based on today + 3 days limit
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + 3);
+    // Calculate base date (today + 3 days)
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + 3);
+
+    // Target month based on monthOffset
+    const targetDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + monthOffset, 1);
     const year = targetDate.getFullYear();
     const month = targetDate.getMonth();
 
@@ -91,10 +104,10 @@ export default function PenjadwalanPage() {
     }
 
     setCalendarCells(cells);
-    if (firstAvailableDate) {
+    if (!selectedDateObj && firstAvailableDate) {
       setSelectedDateObj(firstAvailableDate);
     }
-  }, []);
+  }, [monthOffset]);
 
   if (loading || !user || !submission) {
     return (
@@ -122,7 +135,7 @@ export default function PenjadwalanPage() {
 
     try {
       const selectedAddr = addresses[selectedAddress].address;
-      const dateStr = selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : "";
+      const dateStr = formatSelectedDate(selectedDateObj);
       const { error } = await supabase.from("submissions").insert({
         user_id: user.id,
         product_name: submission.productName,
@@ -154,7 +167,7 @@ export default function PenjadwalanPage() {
   }
 
   if (confirmed) {
-    const dateStr = selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : "";
+    const dateStr = formatSelectedDate(selectedDateObj);
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-6">
         <div className="bg-white border border-[#D1C4B8] rounded-2xl p-12 max-w-md w-full text-center shadow-md">
@@ -203,6 +216,28 @@ export default function PenjadwalanPage() {
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="font-body text-base font-bold text-[#1B1C1C]">{monthYearLabel}</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={monthOffset === 0}
+                    onClick={() => setMonthOffset((o) => Math.max(0, o - 1))}
+                    className="p-2 border border-[#D1C4B8] rounded-lg hover:border-[#735A39] hover:bg-[#F6F3F2] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 text-[#1B1C1C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={monthOffset === 2}
+                    onClick={() => setMonthOffset((o) => Math.min(2, o + 1))}
+                    className="p-2 border border-[#D1C4B8] rounded-lg hover:border-[#735A39] hover:bg-[#F6F3F2] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4 text-[#1B1C1C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-7 text-center">
                 {dayLabels.map((d) => (
@@ -297,7 +332,7 @@ export default function PenjadwalanPage() {
               <div className="flex items-start gap-4">
                 <IconCheck className="w-4 h-4 text-[#D2B48C] mt-1 flex-shrink-0" />
                 <div>
-                  <div className="font-body text-sm font-bold">{selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : ""}</div>
+                  <div className="font-body text-sm font-bold">{formatSelectedDate(selectedDateObj)}</div>
                   <div className="font-body text-xs text-[#C9C6C0] mt-0.5">Tanggal penjemputan</div>
                 </div>
               </div>

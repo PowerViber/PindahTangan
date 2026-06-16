@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { IconShield } from "../components/Icons";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../lib/AuthContext";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [agree, setAgree] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -4,6 +4,16 @@ import { useRouter } from "next/router";
 import { IconCheck, IconShield, IconMapPin } from "../../components/Icons";
 import { formatIDR } from "../../components/ProductCard";
 
+function formatShortIDR(val: number) {
+  if (val >= 1000000) {
+    return `${(val / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 }).replace(".", ",")} jt`;
+  }
+  if (val >= 1000) {
+    return `${(val / 1000).toLocaleString("id-ID")}k`;
+  }
+  return String(val);
+}
+
 const chartMonths = [
   { label: "JAN", value: 134 },
   { label: "FEB", value: 125 },
@@ -19,6 +29,7 @@ export default function EstimasiPage() {
   const [estimationPrice, setEstimationPrice] = useState(15000000);
   const [reasons, setReasons] = useState<{ title: string; desc: string }[]>([]);
   const [loadingEst, setLoadingEst] = useState(true);
+  const [errorMsg, setErrorMsg] = useState("");
   const [chartData, setChartData] = useState<{ label: string; value: number }[]>([]);
   const maxValue = chartData.length > 0 ? Math.max(...chartData.map((m) => m.value)) : 1;
 
@@ -48,19 +59,30 @@ export default function EstimasiPage() {
           if (!res.ok) throw new Error("Failed to fetch estimation");
           const data = await res.json();
 
+          if (data.isElectronic === false) {
+            setErrorMsg(data.error || "Produk ini bukan merupakan barang elektronik.");
+            setLoadingEst(false);
+            return;
+          }
+
           setEstimationPrice(data.price);
           setReasons(data.reasons);
 
-          // Generate dynamic price trend graph
-          const generatedChart = [
-            { label: "JAN", value: Math.round(data.price * 1.08) },
-            { label: "FEB", value: Math.round(data.price * 1.05) },
-            { label: "MAR", value: Math.round(data.price * 1.03) },
-            { label: "APR", value: Math.round(data.price * 1.02) },
-            { label: "MEI", value: Math.round(data.price * 1.01) },
-            { label: "JUN", value: data.price },
-          ];
-          setChartData(generatedChart);
+          // Set monthly price trend graph directly from API
+          if (data.trend && data.trend.length > 0) {
+            setChartData(data.trend);
+          } else {
+            const monthLabels = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP", "OKT", "NOV", "DES"];
+            const generatedChart = [];
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date();
+              d.setMonth(d.getMonth() - i);
+              const label = monthLabels[d.getMonth()];
+              const value = Math.round(data.price * (1 - i * 0.015));
+              generatedChart.push({ label, value });
+            }
+            setChartData(generatedChart);
+          }
 
           parsed.estimationPrice = data.price;
           sessionStorage.setItem("pending_submission", JSON.stringify(parsed));
@@ -83,14 +105,15 @@ export default function EstimasiPage() {
             },
           ]);
 
-          const generatedChart = [
-            { label: "JAN", value: Math.round(fallbackPrice * 1.08) },
-            { label: "FEB", value: Math.round(fallbackPrice * 1.05) },
-            { label: "MAR", value: Math.round(fallbackPrice * 1.03) },
-            { label: "APR", value: Math.round(fallbackPrice * 1.02) },
-            { label: "MEI", value: Math.round(fallbackPrice * 1.01) },
-            { label: "JUN", value: fallbackPrice },
-          ];
+          const monthLabels = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP", "OKT", "NOV", "DES"];
+          const generatedChart = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const label = monthLabels[d.getMonth()];
+            const value = Math.round(fallbackPrice * (1 - i * 0.015));
+            generatedChart.push({ label, value });
+          }
           setChartData(generatedChart);
 
           parsed.estimationPrice = fallbackPrice;
@@ -123,7 +146,36 @@ export default function EstimasiPage() {
         <span className="font-mono text-xs text-[#5F5E5E]">PENJEMPUTAN</span>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr_380px] gap-8">
+      {errorMsg ? (
+        <div className="bg-white border border-[#D1C4B8] rounded-xl p-8 max-w-xl mx-auto text-center flex flex-col gap-6 shadow-sm mt-10">
+          <div className="w-16 h-16 bg-[#BA1A1A] rounded-full flex items-center justify-center mx-auto shadow-xs text-white">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h2 className="font-serif text-2xl font-bold text-[#1B1C1C]">Pengajuan Ditolak oleh Sistem</h2>
+            <p className="font-body text-sm text-[#5F5E5E] leading-relaxed">
+              {errorMsg}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => router.push("/jual")}
+              className="bg-[#303031] hover:bg-[#1B1C1C] text-white font-body font-bold py-4 rounded-lg transition-colors cursor-pointer shadow-xs"
+            >
+              Kembali &amp; Ubah Detail Barang
+            </button>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="border border-[#735A39] text-[#735A39] font-body font-bold py-4 rounded-lg hover:bg-white transition-colors cursor-pointer"
+            >
+              Batal &amp; Ke Dashboard
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid lg:grid-cols-[1fr_380px] gap-8">
         {/* Left column */}
         <div className="flex flex-col gap-6">
           <div className="bg-white border border-[#D1C4B8] rounded-xl p-8 flex flex-col gap-8 relative overflow-hidden shadow-xs">
@@ -213,21 +265,28 @@ export default function EstimasiPage() {
             <div className="flex items-end gap-2 h-44">
               {loadingEst || chartData.length === 0 ? (
                 Array.from({ length: 6 }).map((_, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                    <div className="w-full bg-[#EFEDED] animate-pulse rounded-t-lg" style={{ height: `${20 + idx * 15}%` }} />
-                    <span className="h-3 w-8 bg-[#EFEDED] animate-pulse rounded" />
+                  <div key={idx} className="flex-1 h-full flex flex-col items-center justify-end">
+                    <div className="w-full flex-1 flex items-end justify-center">
+                      <div className="w-full bg-[#EFEDED] animate-pulse rounded-t-lg" style={{ height: `${20 + idx * 12}%` }} />
+                    </div>
+                    <span className="h-3 w-8 bg-[#EFEDED] animate-pulse rounded mt-2" />
                   </div>
                 ))
               ) : (
                 chartData.map((m, i) => (
-                  <div key={m.label} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className={`w-full rounded-t-lg transition-all duration-500 ${
-                        i === chartData.length - 1 ? "bg-[#C5A67F]" : "bg-[#E4E2E2]"
-                      }`}
-                      style={{ height: `${(m.value / maxValue) * 100}%` }}
-                    />
-                    <span className="font-mono text-[10px] text-[#5F5E5E] font-semibold">{m.label}</span>
+                  <div key={m.label} className="flex-1 h-full flex flex-col items-center justify-end">
+                    <div className="w-full flex-1 flex flex-col justify-end items-center gap-1.5">
+                      <span className="font-mono text-[9px] text-[#735A39] font-bold">
+                        {formatShortIDR(m.value)}
+                      </span>
+                      <div
+                        className={`w-full rounded-t-lg transition-all duration-500 ${
+                          i === chartData.length - 1 ? "bg-[#C5A67F]" : "bg-[#E4E2E2]"
+                        }`}
+                        style={{ height: `${(m.value / maxValue) * 82}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-[#5F5E5E] font-semibold mt-2">{m.label}</span>
                   </div>
                 ))
               )}
@@ -295,9 +354,21 @@ export default function EstimasiPage() {
               <span className="font-body text-xs font-bold text-[#1B1C1C] uppercase tracking-wider">Layanan Penjemputan</span>
               <span className="font-mono text-[10px] font-bold text-[#735A39]">AKTIF DI SURABAYA</span>
             </div>
-            <div className="bg-[#E4E2E2] h-36 flex items-center justify-center text-[#7F766A] text-xs gap-2 bg-gradient-to-tr from-[#EFEDED] to-[#E4E2E2]">
-              <IconMapPin className="w-4 h-4 text-[#735A39]" />
-              Peta Layanan Surabaya &amp; Sekitarnya
+            <div className="relative h-44 w-full bg-[#E4E2E2] overflow-hidden">
+              <iframe
+                title="Peta Layanan Surabaya"
+                width="100%"
+                height="100%"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=112.60%2C-7.35%2C112.85%2C-7.15&amp;layer=mapnik"
+                className="w-full h-full border-0 grayscale-[40%] contrast-[110%] opacity-90"
+                style={{ border: 0 }}
+              />
+              <div className="absolute top-3 left-3 pointer-events-none">
+                <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-[#D1C4B8] shadow-sm flex items-center gap-2">
+                  <IconMapPin className="w-3.5 h-3.5 text-[#735A39]" />
+                  <span className="font-body text-xs font-semibold text-[#1B1C1C]">Area Layanan Surabaya</span>
+                </div>
+              </div>
             </div>
             <div className="p-4">
               <p className="font-body text-xs text-[#4E453C] leading-relaxed">
@@ -307,6 +378,7 @@ export default function EstimasiPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
