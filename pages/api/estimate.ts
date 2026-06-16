@@ -34,14 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     - Fungsionalitas: ${functionality}
     - Kelengkapan: ${completeness}
 
-    Berikan hasil taksiran harga saat ini yang realistis (berupa angka bulat integer).
+    Tentukan nilai taksiran harga saat ini secara dinamis dan realistis sesuai dengan jenis produk, kondisi, tahun, dll (berupa angka bulat integer, contoh: jika produknya adalah AC bekas mungkin harganya 2000000, jika iPhone 13 mungkin 8500000, jika laptop mewah mungkin 15000000, dsb). Jangan pernah mengembalikan angka 12500000 jika tidak sesuai!
     Berikan daftar alasan utama dalam bahasa Indonesia mengapa harga tersebut ditentukan (bisa 2 alasan atau lebih jika ada poin general).
-    Berikan juga taksiran tren harga pasar bulanan produk ini untuk 6 bulan terakhir: ${last6Months.join(", ")}.
+    Berikan juga taksiran tren harga pasar bulanan produk ini untuk 6 bulan terakhir: ${last6Months.join(", ")} yang nilainya bersesuaian dengan harga taksiran saat ini (menunjukkan depresiasi wajar dari bulan ke bulan).
 
-    Format respon Anda harus berupa JSON murni dengan format persis seperti ini:
+    Format respon Anda harus berupa JSON murni dengan struktur seperti di bawah ini. INGAT: ganti nilai properti "price" dan "value" di bawah dengan hasil analisis nyata Anda sendiri, jangan menyalin angka contoh di bawah:
     {
       "isElectronic": true,
-      "price": 12500000,
+      "price": 8500000,
       "reasons": [
         {
           "title": "Alasan pertama",
@@ -53,12 +53,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       ],
       "trend": [
-        { "label": "${last6Months[0]}", "value": 13500000 },
-        { "label": "${last6Months[1]}", "value": 13200000 },
-        { "label": "${last6Months[2]}", "value": 13000000 },
-        { "label": "${last6Months[3]}", "value": 12800000 },
-        { "label": "${last6Months[4]}", "value": 12600000 },
-        { "label": "${last6Months[5]}", "value": 12500000 }
+        { "label": "${last6Months[0]}", "value": 9000000 },
+        { "label": "${last6Months[1]}", "value": 8900000 },
+        { "label": "${last6Months[2]}", "value": 8800000 },
+        { "label": "${last6Months[3]}", "value": 8700000 },
+        { "label": "${last6Months[4]}", "value": 8600000 },
+        { "label": "${last6Months[5]}", "value": 8500000 }
       ]
     }
   `;

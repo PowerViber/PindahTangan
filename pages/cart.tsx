@@ -10,6 +10,7 @@ export default function CartPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { items, loading, subtotal, removeFromCart } = useCart();
+  const hasInvalidItems = Boolean(user && items.some((item) => item.product.sold || item.product.seller_id === user.id));
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -90,13 +91,19 @@ export default function CartPage() {
             <h2 className="font-serif text-xl font-semibold text-[#1B1C1C] border-b border-[#D1C5B8] pb-3">
               Ringkasan Pesanan
             </h2>
+            {hasInvalidItems && (
+              <div className="bg-[#FFDAD6] border border-[#BA1A1A]/30 text-[#BA1A1A] rounded-lg p-3 text-xs font-semibold">
+                Keranjang berisi listing milikmu atau produk yang sudah tidak tersedia. Hapus item tersebut dulu.
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm text-[#4D453C]">
               <span>{items.length} barang</span>
               <span className="font-bold text-[#1B1C1C] text-lg">{formatIDR(subtotal)}</span>
             </div>
             <button
               onClick={() => router.push("/checkout")}
-              className="w-full bg-[#1B1C1C] hover:bg-[#333333] text-white rounded-xl py-3.5 font-semibold transition-colors cursor-pointer"
+              disabled={hasInvalidItems}
+              className="w-full bg-[#1B1C1C] hover:bg-[#333333] text-white rounded-xl py-3.5 font-semibold transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Lanjut ke Pembayaran
             </button>

@@ -8,7 +8,7 @@ import { useAuth } from "../lib/AuthContext";
 export default function RegisterPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", contactNumber: "", password: "" });
   const [agree, setAgree] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,6 +33,7 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: form.name,
+            contact_number: form.contactNumber,
           },
         },
       });
@@ -57,6 +58,7 @@ export default function RegisterPage() {
           id: data.user.id,
           full_name: form.name,
           email: form.email,
+          contact_number: form.contactNumber.trim(),
           is_admin: false,
         });
 
@@ -72,7 +74,7 @@ export default function RegisterPage() {
       } else {
         setErrorMsg("Registrasi selesai. Silakan verifikasi email Anda jika diperlukan.");
       }
-    } catch (err: any) {
+    } catch {
       setErrorMsg("Terjadi kesalahan sistem. Silakan coba lagi.");
     } finally {
       setLoading(false);
@@ -153,12 +155,12 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="font-body text-xs font-bold text-[#1B1C1C] uppercase tracking-wider">Nomor WhatsApp</label>
+              <label className="font-body text-xs font-bold text-[#1B1C1C] uppercase tracking-wider">Nomor Kontak</label>
               <input
                 type="tel"
                 required
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                value={form.contactNumber}
+                onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
                 placeholder="+62 8xx-xxxx-xxxx"
                 className="font-body bg-white border border-[#D1C4B8] rounded-lg px-4 py-3 text-sm placeholder-[#A89070] focus:outline-none focus:border-[#725A39] transition-all"
               />

@@ -11,31 +11,88 @@ const promiseItems = [
   { title: "Studio Photography",    desc: "Menampilkan barang Anda dengan tampilan terbaik." },
 ];
 
-export default function SellerPanelPage() {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [form, setForm] = useState({
+function createEmptyForm(contact = "") {
+  return {
     productName: "",
     purchaseYear: "",
     condition: "",
     functionality: "",
     completeness: "",
     address: "",
-    contact: "",
+    contact,
     imageUrl: "",
-  });
+  };
+}
+
+export default function SellerPanelPage() {
+  const router = useRouter();
+  const { user, profile, loading, refreshProfile } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState(createEmptyForm());
 
   const [uploading, setUploading] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [formError, setFormError] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const isEdit = router.query.edit === "true";
+    const defaultContact = profile?.contact_number || "";
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const dataStr = sessionStorage.getItem("pending_submission");
+
+      if (dataStr) {
+        try {
+          const parsed = JSON.parse(dataStr);
+          if (parsed.draftId && !isEdit) {
+            // Starting a new submission, clear the draft state
+            sessionStorage.removeItem("pending_submission");
+            setForm(createEmptyForm(defaultContact));
+            setImagePreview(null);
+            setDraftId(null);
+          } else {
+            setForm({
+              productName: parsed.productName || "",
+              purchaseYear: parsed.purchaseYear || "",
+              condition: parsed.condition || "",
+              functionality: parsed.functionality || "",
+              completeness: parsed.completeness || "",
+              address: parsed.address || "",
+              contact: parsed.contact || defaultContact,
+              imageUrl: parsed.imageUrl || "",
+            });
+            if (parsed.imageUrl) {
+              setImagePreview(parsed.imageUrl);
+            }
+            if (parsed.draftId) {
+              setDraftId(parsed.draftId);
+            }
+          }
+        } catch (err) {
+          console.error("Gagal memuat pending_submission:", err);
+        }
+      } else if (defaultContact) {
+        setForm((current) => current.contact ? current : { ...current, contact: defaultContact });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.contact_number, router.isReady, router.query]);
 
   function update(field: keyof typeof form, val: string) {
     setForm((f) => ({ ...f, [field]: val }));
@@ -56,7 +113,7 @@ export default function SellerPanelPage() {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `submissions/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("PindahTangan")
         .upload(filePath, compressedBlob, {
           contentType: "image/jpeg",
@@ -71,7 +128,7 @@ export default function SellerPanelPage() {
         .getPublicUrl(filePath);
 
       update("imageUrl", publicUrl);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setUploadError("Gagal mengunggah foto. Pastikan bucket 'PindahTangan' sudah dikonfigurasi.");
     } finally {
@@ -79,10 +136,38 @@ export default function SellerPanelPage() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    sessionStorage.setItem("pending_submission", JSON.stringify(form));
+    setFormError("");
+    setSavingContact(true);
+
+    try {
+      const nextContact = form.contact.trim();
+      const currentContact = (profile?.contact_number || "").trim();
+
+      if (nextContact && nextContact !== currentContact) {
+        const { error } = await supabase.rpc("update_contact_number", {
+          p_contact_number: nextContact,
+        });
+
+        if (error) throw error;
+        await refreshProfile();
+      }
+    } catch (err) {
+      console.error("Gagal menyimpan nomor kontak:", err);
+      setFormError("Gagal menyimpan nomor kontak ke profil. Pastikan SQL contact_number sudah dijalankan.");
+      setSavingContact(false);
+      return;
+    }
+
+    const payload = {
+      ...form,
+      contact: form.contact.trim(),
+      draftId,
+    };
+    sessionStorage.setItem("pending_submission", JSON.stringify(payload));
     router.push("/jual/estimasi");
+    setSavingContact(false);
   }
 
   if (loading || !user) {
@@ -104,6 +189,12 @@ export default function SellerPanelPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white border border-[#E8E2D9] rounded-xl p-8 sm:p-12 flex flex-col gap-8 shadow-xs">
+            {formError && (
+              <div className="bg-[#FFDAD6] border border-[#BA1A1A]/30 text-[#BA1A1A] p-4 rounded-lg text-sm font-semibold">
+                {formError}
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               <label className="font-sans text-sm font-semibold text-[#4D453C]">Nama Produk</label>
               <input
@@ -168,7 +259,7 @@ export default function SellerPanelPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label className="font-sans text-sm font-semibold text-[#4D453C]">Nomor Kontak (WhatsApp)</label>
+                <label className="font-sans text-sm font-semibold text-[#4D453C]">Nomor Kontak</label>
                 <input
                   type="tel"
                   required
@@ -247,10 +338,10 @@ export default function SellerPanelPage() {
 
             <button
               type="submit"
-              disabled={uploading}
+              disabled={uploading || savingContact}
               className="bg-[#D2B48C] hover:bg-[#C5A67F] disabled:bg-[#D1C5B8] text-[#5B4526] font-body font-bold text-base py-4 px-10 rounded-lg w-fit transition-colors cursor-pointer self-start shadow-xs"
             >
-              Minta Estimasi Harga
+              {savingContact ? "Menyimpan Kontak..." : "Minta Estimasi Harga"}
             </button>
           </form>
         </div>

@@ -8,6 +8,7 @@ interface Profile {
   full_name: string;
   email: string;
   is_admin: boolean;
+  contact_number?: string | null;
 }
 
 interface AuthContextType {
@@ -83,6 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     setLoading(true);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("pending_submission");
+    }
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);

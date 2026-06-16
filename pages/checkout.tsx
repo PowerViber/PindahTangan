@@ -43,6 +43,11 @@ export default function CheckoutPage() {
 
   async function handleConfirm() {
     if (!user || items.length === 0 || submitting) return;
+    const invalidItems = items.filter((item) => item.product.sold || item.product.seller_id === user.id);
+    if (invalidItems.length > 0) {
+      setError("Keranjang berisi listing milikmu atau produk yang sudah tidak tersedia. Hapus item tersebut terlebih dahulu.");
+      return;
+    }
     if (method === "CARD" && (!cardNumber.trim() || !cardExpiry.trim() || !cardCvc.trim())) {
       setError("Lengkapi data kartu terlebih dahulu.");
       return;
@@ -50,38 +55,18 @@ export default function CheckoutPage() {
     setError(null);
     setSubmitting(true);
 
-    const status = method === "CASH" ? "PENDING" : "PAID";
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        user_id: user.id,
-        total: subtotal,
-        payment_method: method,
-        status,
-        paid_at: status === "PAID" ? new Date().toISOString() : null,
-      })
-      .select()
-      .single();
+    const { data: orderId, error: checkoutError } = await supabase.rpc("checkout_cart", {
+      p_payment_method: method,
+    });
 
-    if (orderError || !order) {
-      setError("Gagal membuat pesanan. Coba lagi.");
+    if (checkoutError || !orderId) {
+      setError("Gagal membuat pesanan. Pastikan database migration checkout_cart sudah dijalankan.");
       setSubmitting(false);
       return;
     }
 
-    const orderItems = items.map((item) => ({
-      order_id: order.id,
-      product_id: item.product.id,
-      product_name: item.product.name,
-      price: item.product.price,
-    }));
-    await supabase.from("order_items").insert(orderItems);
-
-    const productIds = items.map((item) => item.product.id);
-    await supabase.from("products").update({ sold: true }).in("id", productIds);
-
     await clearCart();
-    router.push(`/orders/${order.id}`);
+    router.push(`/orders/${orderId}`);
   }
 
   if (authLoading || !user || cartLoading || items.length === 0) {
@@ -97,6 +82,7 @@ export default function CheckoutPage() {
     { value: "CARD", label: "Kartu Debit/Kredit", Icon: IconCard },
     { value: "CASH", label: "Tunai (COD)", Icon: IconCash },
   ];
+  const hasInvalidItems = items.some((item) => item.product.sold || item.product.seller_id === user.id);
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col gap-8">
@@ -190,6 +176,11 @@ export default function CheckoutPage() {
           </div>
 
           {error && <p className="text-sm text-[#BA1A1A] font-semibold">{error}</p>}
+          {hasInvalidItems && (
+            <p className="text-sm text-[#BA1A1A] font-semibold">
+              Ada item milikmu sendiri atau produk yang sudah tidak tersedia di keranjang.
+            </p>
+          )}
         </div>
 
         <div className="w-full lg:w-80 bg-white border border-[#D1C5B8] rounded-2xl p-6 flex flex-col gap-5 self-start">
@@ -210,7 +201,7 @@ export default function CheckoutPage() {
           </div>
           <button
             onClick={handleConfirm}
-            disabled={submitting}
+            disabled={submitting || hasInvalidItems}
             className="w-full bg-[#1B1C1C] hover:bg-[#333333] text-white rounded-xl py-3.5 font-semibold transition-colors cursor-pointer disabled:opacity-60"
           >
             {submitting ? "Memproses..." : method === "CASH" ? "Konfirmasi Pesanan" : "Saya Sudah Bayar"}

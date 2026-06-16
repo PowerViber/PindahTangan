@@ -14,7 +14,9 @@ interface ProductCardProps {
     price: number | string;
     image_url?: string | null;
     sold?: boolean;
+    seller_id?: string | null;
   };
+  hideCartButton?: boolean;
 }
 
 const gradeStyle: Record<string, string> = {
@@ -35,7 +37,7 @@ export function formatIDR(val: number | string | null | undefined) {
   }).format(num);
 }
 
-export default function ProductCard({ product }: Readonly<ProductCardProps>) {
+export default function ProductCard({ product, hideCartButton = false }: Readonly<ProductCardProps>) {
   const router = useRouter();
   const { user } = useAuth();
   const displayGrade = (product.grade || "GOOD").toUpperCase();
@@ -43,10 +45,11 @@ export default function ProductCard({ product }: Readonly<ProductCardProps>) {
   const { addToCart, isInCart } = useCart();
   const [adding, setAdding] = useState(false);
   const inCart = isInCart(product.id);
+  const isOwnListing = Boolean(user && product.seller_id && product.seller_id === user.id);
 
   async function handleAddToCart(e: MouseEvent) {
     e.preventDefault();
-    if (inCart || product.sold || adding) return;
+    if (inCart || product.sold || isOwnListing || adding) return;
     if (!user) {
       router.push("/login");
       return;
@@ -78,6 +81,11 @@ export default function ProductCard({ product }: Readonly<ProductCardProps>) {
           <span className={`absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide ${badgeClass}`}>
             {displayGrade}
           </span>
+          {isOwnListing && (
+            <span className="absolute top-3 right-3 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm tracking-wide bg-white text-[#725A39] border border-[#D1C5B8]">
+              Listing Anda
+            </span>
+          )}
         </div>
       </div>
       <div className="p-5 flex flex-col justify-between flex-1 gap-4">
@@ -93,18 +101,26 @@ export default function ProductCard({ product }: Readonly<ProductCardProps>) {
             {formatIDR(product.price)}
           </span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleAddToCart}
-              disabled={inCart || product.sold || adding}
-              title={inCart ? "Sudah di keranjang" : "Tambah ke Keranjang"}
-              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer disabled:cursor-default ${
-                inCart
-                  ? "bg-[#1B1C1C] border-[#1B1C1C] text-white"
-                  : "border-[#D1C5B8] text-[#1B1C1C] hover:bg-[#F6F3F2]"
-              }`}
-            >
-              {inCart ? <IconCheck className="w-4 h-4" /> : <IconCart className="w-4 h-4" />}
-            </button>
+            {!hideCartButton && (
+              <button
+                onClick={handleAddToCart}
+                disabled={inCart || product.sold || isOwnListing || adding}
+                title={
+                  isOwnListing
+                    ? "Listing milikmu tidak bisa dibeli sendiri"
+                    : inCart
+                      ? "Sudah di keranjang"
+                      : "Tambah ke Keranjang"
+                }
+                className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer disabled:cursor-default ${
+                  inCart
+                    ? "bg-[#1B1C1C] border-[#1B1C1C] text-white"
+                    : "border-[#D1C5B8] text-[#1B1C1C] hover:bg-[#F6F3F2]"
+                }`}
+              >
+                {inCart ? <IconCheck className="w-4 h-4" /> : <IconCart className="w-4 h-4" />}
+              </button>
+            )}
             <Link
               href={`/marketplace/${product.id}`}
               className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { IconCheck, IconShield, IconMapPin } from "../../components/Icons";
 import { formatIDR } from "../../components/ProductCard";
+import { useAuth } from "../../lib/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 function formatShortIDR(val: number) {
   if (val >= 1000000) {
@@ -25,6 +27,7 @@ const chartMonths = [
 
 export default function EstimasiPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [submission, setSubmission] = useState<any>(null);
   const [estimationPrice, setEstimationPrice] = useState(15000000);
   const [reasons, setReasons] = useState<{ title: string; desc: string }[]>([]);
@@ -40,6 +43,37 @@ export default function EstimasiPage() {
       setSubmission(parsed);
 
       async function fetchEstimation() {
+        if (parsed.estimationPrice && parsed.isFromDraft) {
+          setEstimationPrice(parsed.estimationPrice);
+          setReasons([
+            {
+              title: "Spesifikasi & Detail",
+              desc: `${parsed.productName} tahun pembelian ${parsed.purchaseYear || "-"}.`,
+            },
+            {
+              title: "Kondisi & Fungsionalitas",
+              desc: `Fisik: ${parsed.condition || "Baik"}. Fungsi: ${parsed.functionality || "Normal"}.`,
+            },
+            {
+              title: "Kelengkapan",
+              desc: `Kelengkapan: ${parsed.completeness || "Lengkap"}.`,
+            }
+          ]);
+
+          const monthLabels = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGT", "SEP", "OKT", "NOV", "DES"];
+          const generatedChart = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            const label = monthLabels[d.getMonth()];
+            const value = Math.round(parsed.estimationPrice * (1 - i * 0.015));
+            generatedChart.push({ label, value });
+          }
+          setChartData(generatedChart);
+          setLoadingEst(false);
+          return;
+        }
+
         setLoadingEst(true);
         try {
           const res = await fetch("/api/estimate", {
@@ -127,6 +161,73 @@ export default function EstimasiPage() {
     }
   }, []);
 
+  async function handleSaveDraft() {
+    if (!submission) return;
+    setLoadingEst(true);
+    try {
+      if (submission.draftId) {
+        const { error } = await supabase
+          .from("submissions")
+          .update({
+            product_name: submission.productName,
+            purchase_year: submission.purchaseYear,
+            condition: submission.condition,
+            functionality: submission.functionality,
+            completeness: submission.completeness,
+            address: submission.address || "",
+            contact: submission.contact || "",
+            status: "DRAFT",
+            estimation_price: estimationPrice,
+            image_url: submission.imageUrl || null,
+            pickup_date: null,
+            pickup_time: null,
+          })
+          .eq("id", submission.draftId);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("submissions")
+          .insert({
+            user_id: user?.id,
+            product_name: submission.productName,
+            purchase_year: submission.purchaseYear,
+            condition: submission.condition,
+            functionality: submission.functionality,
+            completeness: submission.completeness,
+            address: submission.address || "",
+            contact: submission.contact || "",
+            status: "DRAFT",
+            estimation_price: estimationPrice,
+            image_url: submission.imageUrl || null,
+            pickup_date: null,
+            pickup_time: null,
+          })
+          .select();
+
+        if (error) throw error;
+
+        if (data && data[0]) {
+          const updatedSubmission = {
+            ...submission,
+            draftId: data[0].id,
+            estimationPrice: estimationPrice,
+          };
+          sessionStorage.setItem("pending_submission", JSON.stringify(updatedSubmission));
+          setSubmission(updatedSubmission);
+        }
+      }
+
+      sessionStorage.removeItem("pending_submission");
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Gagal menyimpan draft:", err);
+      setErrorMsg("Gagal menyimpan draft pengajuan. Silakan coba lagi.");
+    } finally {
+      setLoadingEst(false);
+    }
+  }
+
   if (!submission) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -161,7 +262,7 @@ export default function EstimasiPage() {
           </div>
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => router.push("/jual")}
+              onClick={() => router.push("/jual?edit=true")}
               className="bg-[#303031] hover:bg-[#1B1C1C] text-white font-body font-bold py-4 rounded-lg transition-colors cursor-pointer shadow-xs"
             >
               Kembali &amp; Ubah Detail Barang
@@ -323,15 +424,12 @@ export default function EstimasiPage() {
               </button>
               <button
                 disabled={loadingEst}
-                onClick={() => {
-                  sessionStorage.removeItem("pending_submission");
-                  router.push("/dashboard");
-                }}
+                onClick={handleSaveDraft}
                 className="border border-[#735A39] text-[#735A39] disabled:border-[#D1C5B8] disabled:text-[#D1C5B8] font-body font-bold py-4 rounded-lg hover:bg-white transition-colors cursor-pointer"
               >
                 Simpan sebagai Draft
               </button>
-              <Link href="/jual" className="font-body text-xs font-semibold text-[#5F5E5E] text-center hover:underline mt-1">
+              <Link href="/jual?edit=true" className="font-body text-xs font-semibold text-[#5F5E5E] text-center hover:underline mt-1">
                 Ganti detail barang? Edit data.
               </Link>
             </div>

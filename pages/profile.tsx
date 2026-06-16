@@ -15,10 +15,19 @@ interface Submission {
   created_at: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  sold?: boolean;
+  seller_id?: string | null;
+  submission_id?: string | null;
+}
+
 export default function ProfilePage() {
   const { user, profile, loading, signOut } = useAuth();
   const router = useRouter();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
@@ -40,6 +49,7 @@ export default function ProfilePage() {
 
         if (!error && data) {
           setSubmissions(data);
+          setRelatedProducts(await loadRelatedProducts(user.id, data));
         }
         setFetching(false);
       }
@@ -55,10 +65,23 @@ export default function ProfilePage() {
     );
   }
 
-  const totalSubmissions = submissions.length;
-  const activeSubmissions = submissions.filter((s) => s.status === "ACTIVE" || s.status === "PENDING").length;
-  const soldSubmissions = submissions.filter((s) => s.status === "SOLD").length;
-  const cancelledSubmissions = submissions.filter((s) => s.status === "CANCELLED").length;
+  const soldProducts = relatedProducts.filter((product) => product.sold);
+  const soldSubmissionIds = new Set(soldProducts.map((product) => product.submission_id).filter(Boolean));
+  const soldProductNames = new Set(soldProducts.map((product) => product.name.toLowerCase().trim()));
+  const displaySubmissions = submissions.map((submission) => {
+    const isSoldByProduct =
+      soldSubmissionIds.has(submission.id) ||
+      soldProductNames.has(submission.product_name.toLowerCase().trim());
+
+    return isSoldByProduct && submission.status !== "SOLD"
+      ? { ...submission, status: "SOLD" }
+      : submission;
+  });
+
+  const totalSubmissions = displaySubmissions.length;
+  const activeSubmissions = displaySubmissions.filter((s) => s.status === "ACTIVE" || s.status === "PENDING").length;
+  const soldSubmissions = displaySubmissions.filter((s) => s.status === "SOLD").length;
+  const cancelledSubmissions = displaySubmissions.filter((s) => s.status === "CANCELLED").length;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-10">
@@ -100,9 +123,9 @@ export default function ProfilePage() {
           <div className="flex justify-center py-12">
             <div className="w-6 h-6 border-2 border-[#725A39] border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : submissions.length > 0 ? (
+        ) : displaySubmissions.length > 0 ? (
           <div className="flex flex-col gap-4">
-            {submissions.map((sub) => (
+            {displaySubmissions.map((sub) => (
               <SubmissionRow key={sub.id} submission={sub} />
             ))}
           </div>
@@ -126,4 +149,40 @@ export default function ProfilePage() {
       </div>
     </div>
   );
+}
+
+async function loadRelatedProducts(userId: string, submissions: Submission[]) {
+  const productMap = new Map<string, Product>();
+  const addProducts = (products?: Product[] | null) => {
+    (products || []).forEach((product) => productMap.set(product.id, product));
+  };
+
+  const submissionIds = submissions.map((submission) => submission.id);
+  const productNames = Array.from(
+    new Set(submissions.map((submission) => submission.product_name).filter(Boolean))
+  );
+
+  const { data: sellerProducts } = await supabase
+    .from("products")
+    .select("*")
+    .eq("seller_id", userId);
+  addProducts(sellerProducts);
+
+  if (submissionIds.length > 0) {
+    const { data: submissionProducts } = await supabase
+      .from("products")
+      .select("*")
+      .in("submission_id", submissionIds);
+    addProducts(submissionProducts);
+  }
+
+  if (productNames.length > 0) {
+    const { data: legacyProducts } = await supabase
+      .from("products")
+      .select("*")
+      .in("name", productNames);
+    addProducts(legacyProducts);
+  }
+
+  return Array.from(productMap.values());
 }

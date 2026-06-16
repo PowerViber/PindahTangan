@@ -14,6 +14,7 @@ interface Product {
   image_url?: string | null;
   created_at: string;
   sold?: boolean;
+  seller_id?: string | null;
 }
 
 export default function ProductDetailPage() {
@@ -48,9 +49,10 @@ export default function ProductDetailPage() {
   }, [id]);
 
   const inCart = product ? isInCart(product.id) : false;
+  const isOwnListing = Boolean(user && product?.seller_id && product.seller_id === user.id);
 
   async function handleAddToCart() {
-    if (!product || inCart || product.sold || adding) return;
+    if (!product || inCart || product.sold || isOwnListing || adding) return;
     if (!user) {
       router.push("/login");
       return;
@@ -61,7 +63,7 @@ export default function ProductDetailPage() {
   }
 
   async function handleBuyNow() {
-    if (!product || product.sold || adding) return;
+    if (!product || product.sold || isOwnListing || adding) return;
     if (!user) {
       router.push("/login");
       return;
@@ -129,6 +131,10 @@ export default function ProductDetailPage() {
           {product.sold ? (
             <div className="w-full bg-[#E8E2D9] text-[#7F766A] rounded-2xl py-4 font-semibold text-center">
               Produk Sudah Terjual
+            </div>
+          ) : isOwnListing ? (
+            <div className="w-full bg-[#F6F3F2] border border-[#D1C5B8] text-[#725A39] rounded-2xl py-4 px-5 font-semibold text-center">
+              Ini listing milikmu, jadi tidak bisa dibeli sendiri.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

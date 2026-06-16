@@ -9,21 +9,65 @@ import { formatIDR } from "../../components/ProductCard";
 
 const dayLabels = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
 const timeSlots = [
-  { label: "09:00 — 12:00", sub: "Pagi" },
-  { label: "13:00 — 17:00", sub: "Siang" },
+  { label: "08.00 - 09.00", sub: "Pagi" },
+  { label: "09.00 - 10.00", sub: "Pagi" },
+  { label: "10.00 - 11.00", sub: "Pagi" },
+  { label: "12.00 - 13.00", sub: "Siang" },
+  { label: "13.00 - 14.00", sub: "Siang" },
+  { label: "14.00 - 15.00", sub: "Siang" },
+  { label: "15.00 - 16.00", sub: "Sore" },
 ];
+
+interface PendingSubmission {
+  productName: string;
+  purchaseYear?: string;
+  condition?: string;
+  functionality?: string;
+  completeness?: string;
+  address?: string;
+  contact?: string;
+  estimationPrice?: number;
+  imageUrl?: string | null;
+  draftId?: string;
+}
+
+interface CalendarCell {
+  day: number;
+  faded: boolean;
+  fullDate: Date;
+}
+
+interface UnavailableSlot {
+  pickup_date: string;
+  pickup_time: string;
+}
+
+function slotKey(date: string, time: string) {
+  return `${date.trim()}__${time.trim()}`;
+}
+
+async function fetchUnavailableSlots(excludeSubmissionId?: string) {
+  const { data, error } = await supabase.rpc("qc_unavailable_slots", {
+    p_exclude_submission_id: excludeSubmissionId || null,
+  });
+
+  if (error) throw error;
+  return (data || []) as UnavailableSlot[];
+}
 
 export default function PenjadwalanPage() {
   const router = useRouter();
   const { user, profile, loading } = useAuth();
-  const [submission, setSubmission] = useState<any>(null);
-  const [calendarCells, setCalendarCells] = useState<{ day: number; faded: boolean; fullDate: Date }[]>([]);
+  const [submission, setSubmission] = useState<PendingSubmission | null>(null);
+  const [calendarCells, setCalendarCells] = useState<CalendarCell[]>([]);
   const [monthYearLabel, setMonthYearLabel] = useState("");
   const [selectedDateObj, setSelectedDateObj] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(0);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [unavailableSlots, setUnavailableSlots] = useState<UnavailableSlot[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
   const [monthOffset, setMonthOffset] = useState(0);
 
@@ -43,21 +87,59 @@ export default function PenjadwalanPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    const dataStr = sessionStorage.getItem("pending_submission");
-    if (dataStr) {
-      setSubmission(JSON.parse(dataStr));
-    }
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const dataStr = sessionStorage.getItem("pending_submission");
+      if (dataStr) {
+        setSubmission(JSON.parse(dataStr) as PendingSubmission);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!submission) return;
+    let cancelled = false;
+    const draftId = submission.draftId;
+
+    queueMicrotask(() => {
+      async function loadUnavailableSlots() {
+        try {
+          setSlotsLoading(true);
+          const slots = await fetchUnavailableSlots(draftId);
+          if (!cancelled) setUnavailableSlots(slots);
+        } catch (err) {
+          console.error("Gagal memuat slot QC:", err);
+          if (!cancelled) {
+            setErrorMsg("Gagal memuat slot QC yang sudah terisi. Silakan muat ulang halaman.");
+          }
+        } finally {
+          if (!cancelled) setSlotsLoading(false);
+        }
+      }
+
+      void loadUnavailableSlots();
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [submission]);
 
   useEffect(() => {
     const today = new Date();
     const startLimit = new Date();
-    startLimit.setDate(today.getDate() + 3);
+    startLimit.setDate(today.getDate() + 1);
     startLimit.setHours(0, 0, 0, 0);
 
-    // Calculate base date (today + 3 days)
+    // Calculate base date (today + 1 day)
     const baseDate = new Date();
-    baseDate.setDate(baseDate.getDate() + 3);
+    baseDate.setDate(baseDate.getDate() + 1);
 
     // Target month based on monthOffset
     const targetDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + monthOffset, 1);
@@ -68,12 +150,12 @@ export default function PenjadwalanPage() {
       "Januari", "Februari", "Maret", "April", "Mei", "Juni",
       "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     ];
-    setMonthYearLabel(`${monthNames[month]} ${year}`);
+    const nextMonthYearLabel = `${monthNames[month]} ${year}`;
 
     const firstDayIndex = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
 
-    const cells: any[] = [];
+    const cells: CalendarCell[] = [];
 
     // Faded cells from previous month
     const prevMonthTotalDays = new Date(year, month, 0).getDate();
@@ -103,13 +185,16 @@ export default function PenjadwalanPage() {
       });
     }
 
-    setCalendarCells(cells);
-    if (!selectedDateObj && firstAvailableDate) {
-      setSelectedDateObj(firstAvailableDate);
-    }
+    queueMicrotask(() => {
+      setMonthYearLabel(nextMonthYearLabel);
+      setCalendarCells(cells);
+      setSelectedDateObj((current) => current || firstAvailableDate);
+    });
   }, [monthOffset]);
 
-  if (loading || !user || !submission) {
+  const currentSubmission = submission;
+
+  if (loading || !user || !currentSubmission) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#725A39] border-t-transparent rounded-full animate-spin" />
@@ -118,8 +203,14 @@ export default function PenjadwalanPage() {
   }
 
   const userDisplayName = profile?.full_name || user.email?.split("@")[0] || "Budi Santoso";
-  const userContactPhone = submission.contact || "+62 812-3456-7890";
-  const userCustomAddress = submission.address || "Jl. Sudirman No. 12, Jakarta";
+  const userContactPhone = currentSubmission.contact || profile?.contact_number || "";
+  const userCustomAddress = currentSubmission.address || "Jl. Sudirman No. 12, Jakarta";
+  const selectedDateLabel = formatSelectedDate(selectedDateObj);
+  const unavailableSlotKeys = new Set(
+    unavailableSlots.map((slot) => slotKey(slot.pickup_date, slot.pickup_time))
+  );
+  const selectedSlotKey = slotKey(selectedDateLabel, timeSlots[selectedTime].label);
+  const selectedSlotUnavailable = unavailableSlotKeys.has(selectedSlotKey);
 
   const addresses = [
     { name: userDisplayName, phone: userContactPhone, address: userCustomAddress },
@@ -130,35 +221,82 @@ export default function PenjadwalanPage() {
       setErrorMsg("Sesi aktif tidak ditemukan. Silakan login kembali.");
       return;
     }
+    const submissionToSave = currentSubmission;
+    if (!submissionToSave) {
+      setErrorMsg("Data pengajuan tidak ditemukan. Silakan ulangi dari form jual.");
+      return;
+    }
+    if (!userContactPhone.trim()) {
+      setErrorMsg("Nomor kontak belum tersedia. Silakan kembali ke form jual dan isi nomor kontak Anda.");
+      return;
+    }
+    if (selectedSlotUnavailable) {
+      setErrorMsg("Slot QC ini sudah terisi oleh item lain. Silakan pilih jam lain.");
+      return;
+    }
     setSubmitting(true);
     setErrorMsg("");
 
     try {
       const selectedAddr = addresses[selectedAddress].address;
-      const dateStr = formatSelectedDate(selectedDateObj);
-      const { error } = await supabase.from("submissions").insert({
-        user_id: user.id,
-        product_name: submission.productName,
-        purchase_year: submission.purchaseYear,
-        condition: submission.condition,
-        functionality: submission.functionality,
-        completeness: submission.completeness,
-        address: selectedAddr,
-        contact: userContactPhone,
-        status: "PENDING",
-        estimation_price: submission.estimationPrice,
-        image_url: submission.imageUrl || null,
-        pickup_date: dateStr,
-        pickup_time: timeSlots[selectedTime].label,
-      });
+      const dateStr = selectedDateLabel;
+      const latestUnavailableSlots = await fetchUnavailableSlots(submissionToSave.draftId);
+      const latestUnavailableKeys = new Set(
+        latestUnavailableSlots.map((slot) => slotKey(slot.pickup_date, slot.pickup_time))
+      );
+
+      if (latestUnavailableKeys.has(slotKey(dateStr, timeSlots[selectedTime].label))) {
+        setErrorMsg("Slot QC ini baru saja terisi oleh item lain. Silakan pilih jam lain.");
+        setUnavailableSlots(latestUnavailableSlots);
+        setSubmitting(false);
+        return;
+      }
+
+      let error;
+      if (submissionToSave.draftId) {
+        const res = await supabase
+          .from("submissions")
+          .update({
+            address: selectedAddr,
+            contact: userContactPhone,
+            status: "PENDING",
+            pickup_date: dateStr,
+            pickup_time: timeSlots[selectedTime].label,
+          })
+          .eq("id", submissionToSave.draftId);
+        error = res.error;
+      } else {
+        const res = await supabase.from("submissions").insert({
+          user_id: user.id,
+          product_name: submissionToSave.productName,
+          purchase_year: submissionToSave.purchaseYear,
+          condition: submissionToSave.condition,
+          functionality: submissionToSave.functionality,
+          completeness: submissionToSave.completeness,
+          address: selectedAddr,
+          contact: userContactPhone,
+          status: "PENDING",
+          estimation_price: submissionToSave.estimationPrice,
+          image_url: submissionToSave.imageUrl || null,
+          pickup_date: dateStr,
+          pickup_time: timeSlots[selectedTime].label,
+        });
+        error = res.error;
+      }
 
       if (error) {
+        if (error.code === "23505") {
+          setErrorMsg("Slot QC ini sudah terisi oleh item lain. Silakan pilih jam lain.");
+          setUnavailableSlots(await fetchUnavailableSlots(submissionToSave.draftId));
+          setSubmitting(false);
+          return;
+        }
         throw new Error(error.message);
       }
 
       sessionStorage.removeItem("pending_submission");
       setConfirmed(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       setErrorMsg("Gagal menyimpan pengajuan ke database. Silakan coba lagi.");
     } finally {
@@ -272,24 +410,41 @@ export default function PenjadwalanPage() {
           <div className="bg-white border border-[#D1C4B8] rounded-xl p-6 sm:p-8 flex flex-col gap-6 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#735A39] text-white flex items-center justify-center font-body text-sm font-bold shadow-2xs">2</div>
-              <h2 className="font-sans text-base font-bold text-[#1B1C1C]">Pilih Slot Waktu</h2>
+              <div>
+                <h2 className="font-sans text-base font-bold text-[#1B1C1C]">Pilih Slot Waktu</h2>
+                <p className="font-body text-xs text-[#7F766A] mt-0.5">
+                  {slotsLoading ? "Memuat slot QC..." : "Satu slot hanya bisa dipakai oleh satu item QC."}
+                </p>
+              </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
-              {timeSlots.map((t, i) => (
-                <button
-                  type="button"
-                  key={t.label}
-                  onClick={() => setSelectedTime(i)}
-                  className={`rounded-xl p-4 flex justify-between items-center border transition-colors cursor-pointer ${i === selectedTime ? "bg-[#C5A67F]/40 border-[#735A39] border-2" : "bg-white border-[#D1C4B8] hover:border-[#735A39]"
-                    }`}
-                >
-                  <div className="text-left">
-                    <div className="font-body text-sm font-bold text-[#1B1C1C]">{t.label}</div>
-                    <div className="font-body text-xs text-[#4E453C] mt-0.5">{t.sub}</div>
-                  </div>
-                  {i === selectedTime && <IconCheck className="w-5 h-5 text-[#735A39]" />}
-                </button>
-              ))}
+              {timeSlots.map((t, i) => {
+                const slotUnavailable = unavailableSlotKeys.has(slotKey(selectedDateLabel, t.label));
+                return (
+                  <button
+                    type="button"
+                    key={t.label}
+                    disabled={slotUnavailable}
+                    onClick={() => {
+                      if (!slotUnavailable) setSelectedTime(i);
+                    }}
+                    className={`rounded-xl p-4 flex justify-between items-center border transition-colors ${slotUnavailable
+                        ? "bg-[#F5F3F3] border-[#D1C4B8] text-[#7F766A] cursor-not-allowed opacity-70"
+                        : i === selectedTime
+                          ? "bg-[#C5A67F]/40 border-[#735A39] border-2 cursor-pointer"
+                          : "bg-white border-[#D1C4B8] hover:border-[#735A39] cursor-pointer"
+                      }`}
+                  >
+                    <div className="text-left">
+                      <div className={`font-body text-sm font-bold ${slotUnavailable ? "text-[#7F766A]" : "text-[#1B1C1C]"}`}>{t.label}</div>
+                      <div className="font-body text-xs text-[#4E453C] mt-0.5">
+                        {slotUnavailable ? "Penuh" : t.sub}
+                      </div>
+                    </div>
+                    {i === selectedTime && !slotUnavailable && <IconCheck className="w-5 h-5 text-[#735A39]" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -355,13 +510,13 @@ export default function PenjadwalanPage() {
               <div className="bg-white rounded-lg px-4 py-3 flex justify-between items-center text-[#1B1C1C]">
                 <span className="font-body text-xs font-semibold uppercase tracking-wider text-[#7F766A]">Estimasi Harga</span>
                 <span className="font-sans text-base font-bold text-[#735A39]">
-                  {formatIDR(submission.estimationPrice)}
+                  {formatIDR(currentSubmission.estimationPrice)}
                 </span>
               </div>
               <button
                 onClick={handleConfirmSchedule}
-                disabled={submitting}
-                className="w-full bg-[#735A39] hover:bg-[#5B4526] disabled:bg-[#80756A] text-white font-body font-bold py-4 rounded-lg transition-colors cursor-pointer flex justify-center items-center shadow-xs"
+                disabled={submitting || slotsLoading || selectedSlotUnavailable}
+                className="w-full bg-[#735A39] hover:bg-[#5B4526] disabled:bg-[#80756A] disabled:cursor-not-allowed text-white font-body font-bold py-4 rounded-lg transition-colors cursor-pointer flex justify-center items-center shadow-xs"
               >
                 {submitting ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -369,6 +524,11 @@ export default function PenjadwalanPage() {
                   "Konfirmasi Jadwal"
                 )}
               </button>
+              {selectedSlotUnavailable && (
+                <p className="font-body text-xs text-[#FFDAD6] leading-relaxed">
+                  Slot ini sudah dipakai item lain di antrian QC. Pilih jam lain.
+                </p>
+              )}
               <p className="font-body text-xs text-[#C9C6C0] leading-relaxed">
                 Satu langkah lagi untuk menjual perangkat Anda dengan harga terbaik.
               </p>

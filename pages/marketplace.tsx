@@ -11,6 +11,7 @@ interface Product {
   image_url?: string | null;
   created_at: string;
   sold?: boolean;
+  seller_id?: string | null;
 }
 
 const mockFallbackProducts = [

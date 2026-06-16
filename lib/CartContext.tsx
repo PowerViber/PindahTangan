@@ -10,6 +10,7 @@ export interface CartProduct {
   price: number;
   image_url?: string | null;
   sold?: boolean;
+  seller_id?: string | null;
 }
 
 export interface CartItem {
@@ -89,6 +90,14 @@ export function CartProvider({ children }: Readonly<{ children: React.ReactNode 
   const addToCart = useCallback(
     async (productId: string) => {
       if (!user) return;
+      const { data: product } = await supabase
+        .from("products")
+        .select("seller_id, sold")
+        .eq("id", productId)
+        .single();
+
+      if (product?.sold || product?.seller_id === user.id) return;
+
       await supabase.from("cart_items").insert({ user_id: user.id, product_id: productId });
       await refresh();
     },

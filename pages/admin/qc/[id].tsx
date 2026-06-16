@@ -7,6 +7,7 @@ import { IconArrowLeft, IconCheck, IconMapPin } from "../../../components/Icons"
 
 interface Submission {
   id: string;
+  user_id: string;
   product_name: string;
   purchase_year: string;
   condition: string;
@@ -38,7 +39,7 @@ export default function InspectionPage() {
   const [finalPrice, setFinalPrice] = useState("");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<"published" | "cancelled" | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +79,8 @@ export default function InspectionPage() {
         grade,
         price: priceNum,
         image_url: submission.image_url || null,
+        seller_id: submission.user_id,
+        submission_id: submission.id,
       });
 
       if (productError) throw new Error(productError.message);
@@ -89,10 +92,38 @@ export default function InspectionPage() {
 
       if (statusError) throw new Error(statusError.message);
 
-      setDone(true);
+      setResult("published");
     } catch (err) {
       console.error(err);
       setErrorMsg("Gagal menyimpan hasil inspeksi. Silakan coba lagi.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleCancelSubmission() {
+    if (!submission) return;
+    const confirmed = confirm(
+      "Batalkan pengajuan ini karena data/kondisi tidak sesuai? Barang tidak akan ditampilkan di marketplace."
+    );
+
+    if (!confirmed) return;
+
+    setSaving(true);
+    setErrorMsg("");
+
+    try {
+      const { error } = await supabase
+        .from("submissions")
+        .update({ status: "CANCELLED" })
+        .eq("id", submission.id);
+
+      if (error) throw new Error(error.message);
+
+      setResult("cancelled");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Gagal membatalkan pengajuan. Silakan coba lagi.");
     } finally {
       setSaving(false);
     }
@@ -117,15 +148,21 @@ export default function InspectionPage() {
     );
   }
 
-  if (done) {
+  if (result) {
+    const isCancelled = result === "cancelled";
+
     return (
       <div className="px-20 py-20 max-w-2xl text-center">
-        <div className="w-16 h-16 bg-[#735A39] rounded-full flex items-center justify-center mx-auto mb-6 shadow-xs">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xs ${isCancelled ? "bg-[#BA1A1A]" : "bg-[#735A39]"}`}>
           <IconCheck className="w-8 h-8 text-white" />
         </div>
-        <h2 className="font-serif text-2xl font-bold text-[#1B1C1C] mb-2">Inspeksi Selesai</h2>
+        <h2 className="font-serif text-2xl font-bold text-[#1B1C1C] mb-2">
+          {isCancelled ? "Pengajuan Dibatalkan" : "Inspeksi Selesai"}
+        </h2>
         <p className="font-body text-sm text-[#4D453C] mb-8">
-          {submission.product_name} telah ditandai sebagai {grade} dengan harga {formatIDR(finalPrice)} dan kini terdaftar di Marketplace.
+          {isCancelled
+            ? `${submission.product_name} telah ditandai CANCELLED dan tidak ditampilkan di Marketplace.`
+            : `${submission.product_name} telah ditandai sebagai ${grade} dengan harga ${formatIDR(finalPrice)} dan kini terdaftar di Marketplace.`}
         </p>
         <Link
           href="/admin/qc"
@@ -258,8 +295,15 @@ export default function InspectionPage() {
               "Selesaikan & Tampilkan di Marketplace"
             )}
           </button>
+          <button
+            onClick={handleCancelSubmission}
+            disabled={saving}
+            className="w-full border border-[#FFDAD6] text-[#FFDAD6] hover:bg-[#BA1A1A]/20 disabled:border-[#80756A] disabled:text-[#80756A] disabled:cursor-not-allowed font-body font-bold py-3.5 rounded-lg transition-colors cursor-pointer"
+          >
+            Batalkan Pengajuan
+          </button>
           <p className="font-body text-xs text-[#C9C6C0] leading-relaxed">
-            Barang akan langsung terlihat di Marketplace setelah disimpan.
+            Gunakan batalkan jika kondisi fisik, fungsi, atau informasi barang tidak sesuai. Barang yang dibatalkan tidak akan masuk Marketplace.
           </p>
         </div>
       </div>
