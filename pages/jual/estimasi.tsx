@@ -13,16 +13,14 @@ const chartMonths = [
   { label: "JUN", value: 192 },
 ];
 
-const reasons = [
-  { title: "Kondisi Fisik",        desc: "Kondisi fisik sesuai deskripsi Anda. Tim kami akan melakukan validasi akhir saat penjemputan." },
-  { title: "Tingkat Permintaan", desc: "Perangkat ini memiliki likuiditas pasar yang tinggi di marketplace PindahTangan saat ini." },
-];
-
 export default function EstimasiPage() {
   const router = useRouter();
   const [submission, setSubmission] = useState<any>(null);
   const [estimationPrice, setEstimationPrice] = useState(15000000);
-  const maxValue = Math.max(...chartMonths.map((m) => m.value));
+  const [reasons, setReasons] = useState<{ title: string; desc: string }[]>([]);
+  const [loadingEst, setLoadingEst] = useState(true);
+  const [chartData, setChartData] = useState<{ label: string; value: number }[]>([]);
+  const maxValue = chartData.length > 0 ? Math.max(...chartData.map((m) => m.value)) : 1;
 
   useEffect(() => {
     const dataStr = sessionStorage.getItem("pending_submission");
@@ -30,14 +28,79 @@ export default function EstimasiPage() {
       const parsed = JSON.parse(dataStr);
       setSubmission(parsed);
 
-      const year = parseInt(parsed.purchaseYear) || 2022;
-      const currentYear = new Date().getFullYear();
-      const age = Math.max(0, currentYear - year);
-      const calculatedEst = Math.max(2500000, 22000000 - age * 3000000);
-      setEstimationPrice(calculatedEst);
+      async function fetchEstimation() {
+        setLoadingEst(true);
+        try {
+          const res = await fetch("/api/estimate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              productName: parsed.productName,
+              purchaseYear: parsed.purchaseYear,
+              condition: parsed.condition,
+              functionality: parsed.functionality,
+              completeness: parsed.completeness,
+            }),
+          });
 
-      parsed.estimationPrice = calculatedEst;
-      sessionStorage.setItem("pending_submission", JSON.stringify(parsed));
+          if (!res.ok) throw new Error("Failed to fetch estimation");
+          const data = await res.json();
+
+          setEstimationPrice(data.price);
+          setReasons(data.reasons);
+
+          // Generate dynamic price trend graph
+          const generatedChart = [
+            { label: "JAN", value: Math.round(data.price * 1.08) },
+            { label: "FEB", value: Math.round(data.price * 1.05) },
+            { label: "MAR", value: Math.round(data.price * 1.03) },
+            { label: "APR", value: Math.round(data.price * 1.02) },
+            { label: "MEI", value: Math.round(data.price * 1.01) },
+            { label: "JUN", value: data.price },
+          ];
+          setChartData(generatedChart);
+
+          parsed.estimationPrice = data.price;
+          sessionStorage.setItem("pending_submission", JSON.stringify(parsed));
+        } catch (error) {
+          console.error("Estimation fetch failed, using fallback:", error);
+          const year = parseInt(parsed.purchaseYear) || 2022;
+          const currentYear = new Date().getFullYear();
+          const age = Math.max(0, currentYear - year);
+          const fallbackPrice = Math.max(2500000, 22000000 - age * 3000000);
+
+          setEstimationPrice(fallbackPrice);
+          setReasons([
+            {
+              title: "Kondisi Fisik",
+              desc: "Kondisi fisik sesuai deskripsi Anda. Tim kami akan melakukan validasi akhir saat penjemputan.",
+            },
+            {
+              title: "Tingkat Permintaan",
+              desc: "Perangkat ini memiliki likuiditas pasar yang tinggi di marketplace PindahTangan saat ini.",
+            },
+          ]);
+
+          const generatedChart = [
+            { label: "JAN", value: Math.round(fallbackPrice * 1.08) },
+            { label: "FEB", value: Math.round(fallbackPrice * 1.05) },
+            { label: "MAR", value: Math.round(fallbackPrice * 1.03) },
+            { label: "APR", value: Math.round(fallbackPrice * 1.02) },
+            { label: "MEI", value: Math.round(fallbackPrice * 1.01) },
+            { label: "JUN", value: fallbackPrice },
+          ];
+          setChartData(generatedChart);
+
+          parsed.estimationPrice = fallbackPrice;
+          sessionStorage.setItem("pending_submission", JSON.stringify(parsed));
+        } finally {
+          setLoadingEst(false);
+        }
+      }
+
+      fetchEstimation();
     }
   }, []);
 
@@ -93,9 +156,13 @@ export default function EstimasiPage() {
 
                 <div className="mt-4 flex flex-col gap-1">
                   <span className="font-mono text-xs text-[#5F5E5E] font-semibold tracking-wider">ESTIMASI HARGA TERBAIK</span>
-                  <span className="font-sans text-4xl font-bold text-[#725A39]">
-                    {formatIDR(estimationPrice)}
-                  </span>
+                  {loadingEst ? (
+                    <div className="h-10 w-48 bg-[#EFEDED] animate-pulse rounded-md mt-1" />
+                  ) : (
+                    <span className="font-sans text-4xl font-bold text-[#725A39]">
+                      {formatIDR(estimationPrice)}
+                    </span>
+                  )}
                   <span className="font-body text-xs font-semibold text-[#735A39] mt-0.5">Berlaku selama 7 hari</span>
                 </div>
               </div>
@@ -106,15 +173,22 @@ export default function EstimasiPage() {
             <div className="flex flex-col gap-4">
               <h3 className="font-sans text-lg font-bold text-[#1B1C1C]">Mengapa harga ini?</h3>
               <div className="grid sm:grid-cols-2 gap-4">
-                {reasons.map((r) => (
-                  <div key={r.title} className="bg-[#FBF9F8] border border-[#D1C4B8] rounded-xl p-4 flex flex-col gap-2 shadow-2xs">
-                    <div className="flex items-center gap-3">
-                      <IconCheck className="w-4 h-4 text-[#735A39]" />
-                      <span className="font-body text-sm font-bold text-[#1B1C1C]">{r.title}</span>
+                {loadingEst ? (
+                  <>
+                    <div className="bg-[#FBF9F8] border border-[#D1C4B8] rounded-xl p-4 flex flex-col gap-2 animate-pulse h-28" />
+                    <div className="bg-[#FBF9F8] border border-[#D1C4B8] rounded-xl p-4 flex flex-col gap-2 animate-pulse h-28" />
+                  </>
+                ) : (
+                  reasons.map((r) => (
+                    <div key={r.title} className="bg-[#FBF9F8] border border-[#D1C4B8] rounded-xl p-4 flex flex-col gap-2 shadow-2xs">
+                      <div className="flex items-center gap-3">
+                        <IconCheck className="w-4 h-4 text-[#735A39]" />
+                        <span className="font-body text-sm font-bold text-[#1B1C1C]">{r.title}</span>
+                      </div>
+                      <p className="font-body text-xs text-[#5F5E5E] leading-relaxed">{r.desc}</p>
                     </div>
-                    <p className="font-body text-xs text-[#5F5E5E] leading-relaxed">{r.desc}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -126,22 +200,37 @@ export default function EstimasiPage() {
                 <p className="font-body text-xs text-[#5F5E5E]">6 Bulan Terakhir</p>
               </div>
               <div className="text-right">
-                <div className="font-body text-sm font-bold text-green-600">+Rp 1.200.000</div>
+                {loadingEst || chartData.length === 0 ? (
+                  <div className="h-5 w-24 bg-[#EFEDED] animate-pulse rounded ml-auto mb-1" />
+                ) : (
+                  <div className="font-body text-sm font-bold text-[#BA1A1A]">
+                    -Rp {Math.abs(chartData[chartData.length - 1].value - chartData[chartData.length - 2].value).toLocaleString("id-ID")}
+                  </div>
+                )}
                 <div className="font-mono text-[10px] font-bold text-[#5F5E5E] uppercase tracking-wider">DIBANDINGKAN ESTIMASI BULAN LALU</div>
               </div>
             </div>
             <div className="flex items-end gap-2 h-44">
-              {chartMonths.map((m, i) => (
-                <div key={m.label} className="flex-1 flex flex-col items-center gap-2">
-                  <div
-                    className={`w-full rounded-t-lg transition-all duration-500 ${
-                      i === chartMonths.length - 1 ? "bg-[#C5A67F]" : "bg-[#E4E2E2]"
-                    }`}
-                    style={{ height: `${(m.value / maxValue) * 100}%` }}
-                  />
-                  <span className="font-mono text-[10px] text-[#5F5E5E] font-semibold">{m.label}</span>
-                </div>
-              ))}
+              {loadingEst || chartData.length === 0 ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full bg-[#EFEDED] animate-pulse rounded-t-lg" style={{ height: `${20 + idx * 15}%` }} />
+                    <span className="h-3 w-8 bg-[#EFEDED] animate-pulse rounded" />
+                  </div>
+                ))
+              ) : (
+                chartData.map((m, i) => (
+                  <div key={m.label} className="flex-1 flex flex-col items-center gap-2">
+                    <div
+                      className={`w-full rounded-t-lg transition-all duration-500 ${
+                        i === chartData.length - 1 ? "bg-[#C5A67F]" : "bg-[#E4E2E2]"
+                      }`}
+                      style={{ height: `${(m.value / maxValue) * 100}%` }}
+                    />
+                    <span className="font-mono text-[10px] text-[#5F5E5E] font-semibold">{m.label}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -167,17 +256,19 @@ export default function EstimasiPage() {
 
             <div className="flex flex-col gap-3">
               <button
+                disabled={loadingEst}
                 onClick={() => router.push("/jual/penjadwalan")}
-                className="bg-[#303031] hover:bg-[#1B1C1C] text-[#FBF9F8] font-body font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+                className="bg-[#303031] hover:bg-[#1B1C1C] disabled:bg-[#D1C5B8] disabled:cursor-not-allowed text-[#FBF9F8] font-body font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
-                Setuju &amp; Lanjutkan
+                {loadingEst ? "Menganalisis Harga..." : "Setuju & Lanjutkan"}
               </button>
               <button
+                disabled={loadingEst}
                 onClick={() => {
                   sessionStorage.removeItem("pending_submission");
                   router.push("/dashboard");
                 }}
-                className="border border-[#735A39] text-[#735A39] font-body font-bold py-4 rounded-lg hover:bg-white transition-colors cursor-pointer"
+                className="border border-[#735A39] text-[#735A39] disabled:border-[#D1C5B8] disabled:text-[#D1C5B8] font-body font-bold py-4 rounded-lg hover:bg-white transition-colors cursor-pointer"
               >
                 Simpan sebagai Draft
               </button>
@@ -202,11 +293,11 @@ export default function EstimasiPage() {
           <div className="bg-white border border-[#D1C4B8] rounded-xl overflow-hidden shadow-xs">
             <div className="bg-[#F5F3F3] border-b border-[#D1C5B8] px-4 py-3 flex justify-between items-center">
               <span className="font-body text-xs font-bold text-[#1B1C1C] uppercase tracking-wider">Layanan Penjemputan</span>
-              <span className="font-mono text-[10px] font-bold text-[#735A39]">AKTIF DI JAKARTA</span>
+              <span className="font-mono text-[10px] font-bold text-[#735A39]">AKTIF DI SURABAYA</span>
             </div>
             <div className="bg-[#E4E2E2] h-36 flex items-center justify-center text-[#7F766A] text-xs gap-2 bg-gradient-to-tr from-[#EFEDED] to-[#E4E2E2]">
               <IconMapPin className="w-4 h-4 text-[#735A39]" />
-              Peta Layanan Jakarta Selatan
+              Peta Layanan Surabaya &amp; Sekitarnya
             </div>
             <div className="p-4">
               <p className="font-body text-xs text-[#4E453C] leading-relaxed">

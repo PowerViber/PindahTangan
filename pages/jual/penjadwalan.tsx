@@ -8,11 +8,6 @@ import { IconCheck, IconShield, IconMapPin } from "../../components/Icons";
 import { formatIDR } from "../../components/ProductCard";
 
 const dayLabels = ["MIN", "SEN", "SEL", "RAB", "KAM", "JUM", "SAB"];
-const calendarCells = [
-  { day: 29, faded: true }, { day: 30, faded: true },
-  ...Array.from({ length: 31 }, (_, i) => ({ day: i + 1, faded: false })),
-];
-
 const timeSlots = [
   { label: "09:00 — 12:00", sub: "Pagi" },
   { label: "13:00 — 17:00", sub: "Siang" },
@@ -22,7 +17,9 @@ export default function PenjadwalanPage() {
   const router = useRouter();
   const { user, profile, loading } = useAuth();
   const [submission, setSubmission] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState(22);
+  const [calendarCells, setCalendarCells] = useState<{ day: number; faded: boolean; fullDate: Date }[]>([]);
+  const [monthYearLabel, setMonthYearLabel] = useState("");
+  const [selectedDateObj, setSelectedDateObj] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState(0);
   const [selectedAddress, setSelectedAddress] = useState(0);
   const [confirmed, setConfirmed] = useState(false);
@@ -42,6 +39,63 @@ export default function PenjadwalanPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const today = new Date();
+    const startLimit = new Date();
+    startLimit.setDate(today.getDate() + 3);
+    startLimit.setHours(0, 0, 0, 0);
+
+    // Calculate month based on today + 3 days limit
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + 3);
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth();
+
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    setMonthYearLabel(`${monthNames[month]} ${year}`);
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const cells: any[] = [];
+
+    // Faded cells from previous month
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      cells.push({
+        day: prevMonthTotalDays - i,
+        faded: true,
+        fullDate: new Date(year, month - 1, prevMonthTotalDays - i)
+      });
+    }
+
+    // Days of current month
+    let firstAvailableDate: Date | null = null;
+    for (let d = 1; d <= totalDays; d++) {
+      const cellDate = new Date(year, month, d);
+      cellDate.setHours(0, 0, 0, 0);
+      const isBeforeLimit = cellDate < startLimit;
+
+      if (!isBeforeLimit && !firstAvailableDate) {
+        firstAvailableDate = cellDate;
+      }
+
+      cells.push({
+        day: d,
+        faded: isBeforeLimit,
+        fullDate: cellDate
+      });
+    }
+
+    setCalendarCells(cells);
+    if (firstAvailableDate) {
+      setSelectedDateObj(firstAvailableDate);
+    }
+  }, []);
+
   if (loading || !user || !submission) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
@@ -56,7 +110,6 @@ export default function PenjadwalanPage() {
 
   const addresses = [
     { name: userDisplayName, phone: userContactPhone, address: userCustomAddress },
-    { name: userDisplayName, phone: userContactPhone, address: "Gedung SCBD, Lt. 12, Sudirman Central Business District, Jakarta Selatan 12110" },
   ];
 
   async function handleConfirmSchedule() {
@@ -69,6 +122,7 @@ export default function PenjadwalanPage() {
 
     try {
       const selectedAddr = addresses[selectedAddress].address;
+      const dateStr = selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : "";
       const { error } = await supabase.from("submissions").insert({
         user_id: user.id,
         product_name: submission.productName,
@@ -81,7 +135,7 @@ export default function PenjadwalanPage() {
         status: "PENDING",
         estimation_price: submission.estimationPrice,
         image_url: submission.imageUrl || null,
-        pickup_date: `${selectedDate} Oktober 2024`,
+        pickup_date: dateStr,
         pickup_time: timeSlots[selectedTime].label,
       });
 
@@ -100,6 +154,7 @@ export default function PenjadwalanPage() {
   }
 
   if (confirmed) {
+    const dateStr = selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : "";
     return (
       <div className="min-h-[70vh] flex items-center justify-center px-6">
         <div className="bg-white border border-[#D1C4B8] rounded-2xl p-12 max-w-md w-full text-center shadow-md">
@@ -108,7 +163,7 @@ export default function PenjadwalanPage() {
           </div>
           <h2 className="font-serif text-2xl font-bold text-[#1B1C1C] mb-2">Jadwal Dikonfirmasi</h2>
           <p className="font-body text-sm text-[#5F5E5E] mb-8 leading-relaxed">
-            Kurir kami akan datang pada {selectedDate} Oktober 2024, {timeSlots[selectedTime].label}. Pantau statusnya di dashboard.
+            Kurir kami akan datang pada {dateStr}, {timeSlots[selectedTime].label}. Pantau statusnya di dashboard.
           </p>
           <button
             onClick={() => router.push("/dashboard")}
@@ -147,11 +202,7 @@ export default function PenjadwalanPage() {
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="font-body text-base font-bold text-[#1B1C1C]">Oktober 2024</span>
-                <div className="flex gap-2">
-                  <button type="button" className="w-8 h-8 border border-[#D1C5B8] rounded-lg flex items-center justify-center text-[#1B1C1C] hover:bg-[#F6F3F2] cursor-pointer">‹</button>
-                  <button type="button" className="w-8 h-8 border border-[#D1C5B8] rounded-lg flex items-center justify-center text-[#1B1C1C] hover:bg-[#F6F3F2] cursor-pointer">›</button>
-                </div>
+                <span className="font-body text-base font-bold text-[#1B1C1C]">{monthYearLabel}</span>
               </div>
               <div className="grid grid-cols-7 text-center">
                 {dayLabels.map((d) => (
@@ -159,22 +210,25 @@ export default function PenjadwalanPage() {
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-1">
-                {calendarCells.map((c, i) => (
-                  <button
-                    type="button"
-                    key={i}
-                    disabled={c.faded}
-                    onClick={() => setSelectedDate(c.day)}
-                    className={`h-12 rounded-lg font-body text-sm transition-colors cursor-pointer ${c.faded
-                      ? "text-[#DBDAD9] cursor-default"
-                      : c.day === selectedDate
-                        ? "bg-[#735A39] text-white font-bold shadow-xs"
-                        : "text-[#1B1C1C] hover:bg-[#F6F3F2]"
-                      }`}
-                  >
-                    {c.day}
-                  </button>
-                ))}
+                {calendarCells.map((c, i) => {
+                  const isSelected = selectedDateObj && c.fullDate && selectedDateObj.getTime() === c.fullDate.getTime() && !c.faded;
+                  return (
+                    <button
+                      type="button"
+                      key={i}
+                      disabled={c.faded}
+                      onClick={() => !c.faded && setSelectedDateObj(c.fullDate)}
+                      className={`h-12 rounded-lg font-body text-sm transition-colors cursor-pointer ${c.faded
+                        ? "text-[#DBDAD9] cursor-default"
+                        : isSelected
+                          ? "bg-[#735A39] text-white font-bold shadow-xs"
+                          : "text-[#1B1C1C] hover:bg-[#F6F3F2]"
+                        }`}
+                    >
+                      {c.day}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -243,7 +297,7 @@ export default function PenjadwalanPage() {
               <div className="flex items-start gap-4">
                 <IconCheck className="w-4 h-4 text-[#D2B48C] mt-1 flex-shrink-0" />
                 <div>
-                  <div className="font-body text-sm font-bold">{selectedDate} Oktober 2024</div>
+                  <div className="font-body text-sm font-bold">{selectedDateObj ? `${selectedDateObj.getDate()} ${monthYearLabel}` : ""}</div>
                   <div className="font-body text-xs text-[#C9C6C0] mt-0.5">Tanggal penjemputan</div>
                 </div>
               </div>
