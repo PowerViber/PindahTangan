@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Brand colors — extracted from Figma */
+  --color-cream: #FBF9F8;
+  --color-surface: #FFFFFF;
+  --color-input-bg: #F6F3F2;
+  --color-border: #D1C5B8;
+  --color-border-light: #E8E2D9;
+  --color-text-primary: #1B1C1C;
+  --color-text-secondary: #4D453C;
+  --color-text-tertiary: #5F5E5E;
+  --color-text-muted: #7F766A;
+  --color-accent: #725A39;
+  --color-accent-tan: #D2B48C;
+  --color-accent-tan-deep: #C5A67F;
+  --color-accent-tan-text: #5B4526;
+  --color-dark: #2D2D2D;
+  --color-footer: #E4E2E1;
+  --color-badge-peach: #FEDDB3;
+  --color-badge-red: #FFDAD6;
+
+  --font-serif: var(--font-source-serif), serif;
+  --font-sans: var(--font-hanken), sans-serif;
+  --font-body: var(--font-inter), sans-serif;
+  --font-mono: var(--font-jbmono), monospace;
+}
+
+body {
+  background-color: #FBF9F8;
+  color: #1B1C1C;
+  font-family: var(--font-sans), sans-serif;
+}

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" fill="none">
+  <!-- Upper hand (giving/dropping) -->
+  <g transform="translate(52, 8) rotate(25)">
+    <!-- Sleeve -->
+    <rect x="14" y="30" width="22" height="14" rx="4" fill="#4A6080" stroke="#222" stroke-width="2.5"/>
+    <!-- Palm -->
+    <ellipse cx="18" cy="26" rx="14" ry="10" fill="#F5C5A3" stroke="#222" stroke-width="2.5"/>
+    <!-- Pointing finger -->
+    <ellipse cx="8" cy="18" rx="5" ry="9" fill="#F5C5A3" stroke="#222" stroke-width="2.5"/>
+    <!-- Thumb line -->
+    <path d="M14 26 Q10 30 12 34" stroke="#D4A080" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Package/Box -->
+  <rect x="38" y="36" width="44" height="38" rx="5" fill="#F5A623" stroke="#222" stroke-width="3"/>
+  <rect x="38" y="36" width="44" height="14" rx="5" fill="#E6941A" stroke="#222" stroke-width="3"/>
+  <!-- Box tape line vertical -->
+  <rect x="57" y="36" width="6" height="38" rx="2" fill="#D4840A" stroke="#222" stroke-width="1.5"/>
+  <!-- Box tape line horizontal -->
+  <rect x="46" y="56" width="12" height="5" rx="2" fill="#D4840A" stroke="#222" stroke-width="1.5"/>
+  <!-- W mark on box -->
+  <path d="M50 45 L54 52 L58 46 L62 52 L66 45" stroke="#222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Lower hand (receiving) -->
+  <g transform="translate(-4, 54) rotate(-15)">
+    <!-- Sleeve -->
+    <rect x="18" y="20" width="22" height="14" rx="4" fill="#4A6080" stroke="#222" stroke-width="2.5"/>
+    <!-- Palm/cupped hand -->
+    <path d="M8 18 Q6 28 18 30 Q30 32 36 24 Q38 16 28 14 Q18 12 8 18Z" fill="#F5C5A3" stroke="#222" stroke-width="2.5"/>
+    <!-- Fingers hint -->
+    <path d="M10 20 Q8 26 12 28" stroke="#D4A080" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M20 28 Q22 32 26 30" stroke="#D4A080" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>
