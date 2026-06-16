@@ -19,6 +19,9 @@ const mockFallbackProducts = [
   { id: "4", name: "Sony WH-1000XM4",            grade: "GOOD", price: 3500000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString() },
   { id: "5", name: "iPad Air (2022)",            grade: "MINT", price: 6200000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
   { id: "6", name: "Canon EOS M50 Mark II",      grade: "GOOD", price: 8500000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() },
+  { id: "7", name: "Dell XPS 13 (9310)",         grade: "GOOD", price: 14500000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString() },
+  { id: "8", name: "Nintendo Switch OLED",       grade: "MINT", price: 3800000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString() },
+  { id: "9", name: "Keychron K2 Mechanical Keyboard", grade: "FAIR", price: 950000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString() },
 ];
 
 export default function MarketplacePage() {

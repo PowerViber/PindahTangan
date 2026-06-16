@@ -21,6 +21,7 @@ interface Product {
   grade: string;
   price: number;
   image_url?: string | null;
+  created_at?: string;
 }
 
 const actionItems = [
@@ -56,13 +57,20 @@ export default function DashboardPage() {
           setSubmissions(subData);
         }
 
-        const { data: prodData } = await supabase
+        const { data: prodData, error } = await supabase
           .from("products")
           .select("*")
           .limit(4);
 
-        if (prodData && prodData.length > 0) {
+        if (!error && prodData && prodData.length > 0) {
           setFeed(prodData);
+        } else {
+          setFeed([
+            { id: "1", name: "MacBook Pro 16\" (2021)",   grade: "MINT", price: 28500000, created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString() },
+            { id: "2", name: "Apple Watch Series 8, 45mm", grade: "GOOD", price: 4200000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() },
+            { id: "3", name: "iPhone 12 Pro Max, 256GB",  grade: "FAIR", price: 7200000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString() },
+            { id: "4", name: "Sony WH-1000XM4",            grade: "GOOD", price: 3500000, created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString() },
+          ]);
         }
         setFetching(false);
       }

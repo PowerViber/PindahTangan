@@ -60,16 +60,16 @@ export default function TopNavBar() {
                   href="/profile"
                   className="text-sm font-semibold bg-[#2D2D2D] hover:bg-[#1B1C1C] text-white px-4 py-2 rounded-lg transition-colors"
                 >
-                  {profile?.full_name || user.email}
+                  {profile?.full_name || user.user_metadata?.full_name || user.email}
                 </Link>
-              ) : (
+              ) : pathname !== "/login" ? (
                 <Link
                   href="/login"
                   className="text-sm font-semibold border border-[#1B1C1C] text-[#1B1C1C] hover:bg-[#F6F3F2] px-4 py-2 rounded-lg transition-colors"
                 >
                   Log In
                 </Link>
-              )}
+              ) : null}
             </>
           )}
         </div>

@@ -65,10 +65,10 @@ export default function ProfilePage() {
       <div className="bg-white border border-[#D1C5B8] rounded-2xl p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 bg-[#725A39] rounded-full flex items-center justify-center font-serif text-2xl font-bold text-white shadow-sm">
-            {profile?.full_name?.[0] || user.email?.[0]?.toUpperCase() || "U"}
+            {(profile?.full_name || user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase() || "U"}
           </div>
           <div>
-            <h1 className="font-serif text-3xl font-bold text-[#1B1C1C]">{profile?.full_name || "Nama Pengguna"}</h1>
+            <h1 className="font-serif text-3xl font-bold text-[#1B1C1C]">{profile?.full_name || user.user_metadata?.full_name || "Nama Pengguna"}</h1>
             <p className="font-sans text-sm text-[#7F766A] mt-0.5">{user.email}</p>
           </div>
         </div>

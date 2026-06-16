@@ -36,16 +36,30 @@ export default function RegisterPage() {
       }
 
       if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").insert({
+        // If identities is empty, the email is already registered (email enumeration protection)
+        const isExistingUser = data.user.identities && data.user.identities.length === 0;
+
+        if (isExistingUser) {
+          setErrorMsg("Email sudah terdaftar. Silakan masuk ke akun Anda.");
+          setLoading(false);
+          return;
+        }
+
+        const { error: profileError } = await supabase.from("users").insert({
           id: data.user.id,
           full_name: form.name,
+          email: form.email,
           is_admin: false,
         });
 
         if (profileError) {
           setErrorMsg(profileError.message);
         } else {
-          router.push("/dashboard");
+          if (data.session) {
+            router.push("/dashboard");
+          } else {
+            setErrorMsg("Registrasi berhasil! Silakan periksa email Anda untuk memverifikasi akun.");
+          }
         }
       } else {
         setErrorMsg("Registrasi selesai. Silakan verifikasi email Anda jika diperlukan.");
