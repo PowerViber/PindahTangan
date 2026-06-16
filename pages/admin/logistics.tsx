@@ -1,4 +1,3 @@
-"use client";
 import { useState } from "react";
 import { IconMapPin, IconTruck } from "../../components/Icons";
 

@@ -1,4 +1,3 @@
-"use client";
 import { useState } from "react";
 import { IconSearch, IconBox } from "../../components/Icons";
 
@@ -104,7 +103,7 @@ export default function InventoryPage() {
                 </td>
                 <td className="px-4 py-4">
                   <span className="flex items-center gap-1.5 font-body text-[#1B1C1C]">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: r.statusColor }} />
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: r.statusColor }} />
                     {r.status}
                   </span>
                 </td>

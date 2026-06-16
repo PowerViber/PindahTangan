@@ -1,12 +1,10 @@
-"use client";
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   IconClipboard, IconTruck, IconCamera, IconWallet,
   IconClock, IconSearch, IconChart, IconStore, IconShield, IconCard,
   IconPhone, IconSneaker, IconHome, IconBook, IconSport,
   IconStar,
-} from "./components/Icons";
+} from "../components/Icons";
 
 const steps = [
   { num: "01", Icon: IconClipboard, title: "Submit Barang", desc: "Isi form singkat — nama, kategori, dan kondisi barang. Sistem kasih estimasi harga langsung." },
@@ -47,16 +45,6 @@ const stats = [
 ];
 
 export default function Home() {
-  const [activeIndex, setActiveIndex] = useState(1);
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
     <div className="overflow-x-hidden">
 
@@ -238,95 +226,36 @@ export default function Home() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="bg-[#1B1C1C] py-20 overflow-hidden">
+      <section className="bg-[#1B1C1C] py-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl font-semibold text-white mb-2">Yang Mereka Bilang</h2>
             <p className="font-body text-[#D2B48C] text-sm">Ribuan penjual sudah merasakan manfaatnya</p>
           </div>
-
-          <div className="relative flex flex-col items-center">
-            {/* Horizontal Scroll Container / Slider Wrapper */}
-            <div className="flex items-center justify-between w-full max-w-4xl gap-4 md:gap-8 py-6">
-              {/* Left Button */}
-              <button
-                onClick={() => setActiveIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1))}
-                className="w-10 h-10 rounded-full border border-[#D2B48C] text-[#D2B48C] hover:bg-[#D2B48C] hover:text-[#1B1C1C] flex items-center justify-center transition-colors font-bold focus:outline-none z-20"
-              >
-                &larr;
-              </button>
-
-              {/* Slider Viewport */}
-              <div className="flex-1 overflow-hidden py-4 px-2">
-                <div
-                  className="flex items-center justify-center transition-transform duration-500 ease-in-out gap-4 md:gap-6"
-                  style={{
-                    transform: `translateX(${(1 - activeIndex) * (isDesktop ? 344 : 296)}px)`,
-                  }}
-                >
-                  {testimonials.map((t, index) => {
-                    const isActive = index === activeIndex;
-                    return (
-                      <div
-                        key={t.name}
-                        onClick={() => setActiveIndex(index)}
-                        className={`cursor-pointer transition-all duration-500 ease-in-out flex-shrink-0 w-[280px] md:w-[320px] bg-[#2D2D2D] rounded-lg p-6 flex flex-col border ${
-                          isActive
-                            ? "border-[#D2B48C] shadow-xl z-10"
-                            : "border-transparent opacity-40 hover:opacity-60"
-                        }`}
-                        style={{
-                          transform: isActive ? "scale(1.05)" : "scale(0.85)",
-                        }}
-                      >
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 bg-[#725A39] rounded-full flex items-center justify-center font-body font-bold text-white flex-shrink-0">
-                            {t.name[0]}
-                          </div>
-                          <div>
-                            <div className="font-body font-bold text-white text-sm">{t.name}</div>
-                            <div className="font-body text-xs text-[#D2B48C]">{t.city}</div>
-                          </div>
-                          <div className="ml-auto flex gap-0.5">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                              <IconStar key={i} className="w-3.5 h-3.5 text-[#D2B48C]" />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="font-body text-sm text-[#D1C5B8] leading-relaxed mb-4 flex-1 h-20 overflow-y-auto">
-                          &ldquo;{t.text}&rdquo;
-                        </p>
-                        <div className="bg-[#1B1C1C] rounded-sm px-4 py-2 flex items-center justify-between mt-auto">
-                          <span className="font-body text-xs text-[#D2B48C]">Total didapat</span>
-                          <span className="font-body font-bold text-white">{t.earned}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t) => (
+              <div key={t.name} className="bg-[#2D2D2D] rounded-lg p-6 flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-[#725A39] rounded-full flex items-center justify-center font-body font-bold text-white flex-shrink-0">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <div className="font-body font-bold text-white text-sm">{t.name}</div>
+                    <div className="font-body text-xs text-[#D2B48C]">{t.city}</div>
+                  </div>
+                  <div className="ml-auto flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <IconStar key={i} className="w-3.5 h-3.5 text-[#D2B48C]" />
+                    ))}
+                  </div>
+                </div>
+                <p className="font-body text-sm text-[#D1C5B8] leading-relaxed mb-4 flex-1">&ldquo;{t.text}&rdquo;</p>
+                <div className="bg-[#1B1C1C] rounded-sm px-4 py-2 flex items-center justify-between">
+                  <span className="font-body text-xs text-[#D2B48C]">Total didapat</span>
+                  <span className="font-body font-bold text-white">{t.earned}</span>
                 </div>
               </div>
-
-              {/* Right Button */}
-              <button
-                onClick={() => setActiveIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1))}
-                className="w-10 h-10 rounded-full border border-[#D2B48C] text-[#D2B48C] hover:bg-[#D2B48C] hover:text-[#1B1C1C] flex items-center justify-center transition-colors font-bold focus:outline-none z-20"
-              >
-                &rarr;
-              </button>
-            </div>
-
-            {/* Dots indicator */}
-            <div className="flex gap-2 mt-4">
-              {testimonials.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setActiveIndex(index)}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                    index === activeIndex ? "bg-[#D2B48C]" : "bg-gray-600 hover:bg-gray-500"
-                  }`}
-                />
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </section>
