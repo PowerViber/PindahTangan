@@ -1,8 +1,10 @@
 "use client";
+import Link from "next/link";
 import { IconShield } from "./Icons";
 
 interface ProductCardProps {
   product: {
+    id: string;
     name: string;
     grade: "MINT" | "GOOD" | "FAIR" | string;
     price: number | string;
@@ -68,9 +70,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="font-body text-xl font-bold text-[#1B1C1C]">
             {formatIDR(product.price)}
           </span>
-          <button className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer">
+          <Link
+            href={`/marketplace/${product.id}`}
+            className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+          >
             Lihat Detail
-          </button>
+          </Link>
         </div>
       </div>
     </article>
