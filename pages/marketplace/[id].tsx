@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabase";
 import { formatIDR } from "../../components/ProductCard";
+import { useCart } from "../../lib/CartContext";
+import { useAuth } from "../../lib/AuthContext";
+import { IconCart, IconCheck } from "../../components/Icons";
 
 interface Product {
   id: string;
@@ -10,13 +13,17 @@ interface Product {
   price: number;
   image_url?: string | null;
   created_at: string;
+  sold?: boolean;
 }
 
 export default function ProductDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { user } = useAuth();
+  const { addToCart, isInCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -39,6 +46,33 @@ export default function ProductDetailPage() {
 
     fetchProduct();
   }, [id]);
+
+  const inCart = product ? isInCart(product.id) : false;
+
+  async function handleAddToCart() {
+    if (!product || inCart || product.sold || adding) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setAdding(true);
+    await addToCart(product.id);
+    setAdding(false);
+  }
+
+  async function handleBuyNow() {
+    if (!product || product.sold || adding) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setAdding(true);
+    if (!inCart) {
+      await addToCart(product.id);
+    }
+    setAdding(false);
+    router.push("/checkout");
+  }
 
   if (loading) {
     return (
@@ -92,17 +126,36 @@ export default function ProductDetailPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button className="w-full bg-[#1B1C1C] hover:bg-[#333333] text-white rounded-2xl py-4 font-semibold transition-colors">
-              Ajukan Penawaran
-            </button>
-            <button
-              className="w-full border border-[#1B1C1C] text-[#1B1C1C] rounded-2xl py-4 font-semibold hover:bg-[#F5F3F3] transition-colors"
-              onClick={() => router.back()}
-            >
-              Kembali ke Marketplace
-            </button>
-          </div>
+          {product.sold ? (
+            <div className="w-full bg-[#E8E2D9] text-[#7F766A] rounded-2xl py-4 font-semibold text-center">
+              Produk Sudah Terjual
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <button
+                onClick={handleAddToCart}
+                disabled={inCart || adding}
+                className="w-full flex items-center justify-center gap-2 border border-[#1B1C1C] text-[#1B1C1C] rounded-2xl py-4 font-semibold hover:bg-[#F5F3F3] transition-colors disabled:opacity-60 disabled:cursor-default"
+              >
+                {inCart ? <IconCheck className="w-5 h-5" /> : <IconCart className="w-5 h-5" />}
+                {inCart ? "Sudah di Keranjang" : "Tambah ke Keranjang"}
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={adding}
+                className="w-full bg-[#1B1C1C] hover:bg-[#333333] text-white rounded-2xl py-4 font-semibold transition-colors disabled:opacity-60"
+              >
+                Beli Sekarang
+              </button>
+            </div>
+          )}
+
+          <button
+            className="text-sm font-semibold text-[#725A39] hover:underline text-left"
+            onClick={() => router.back()}
+          >
+            ← Kembali ke Marketplace
+          </button>
         </div>
       </div>
     </div>

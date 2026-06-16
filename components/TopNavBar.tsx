@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { IconSearch } from "./Icons";
+import { IconSearch, IconCart } from "./Icons";
 import { useAuth } from "../lib/AuthContext";
+import { useCart } from "../lib/CartContext";
 
 const navItems = [
   { href: "/marketplace", label: "Marketplace" },
@@ -13,6 +14,7 @@ export default function TopNavBar() {
   const router = useRouter();
   const pathname = router.pathname;
   const { user, profile, loading } = useAuth();
+  const { count } = useCart();
 
   return (
     <nav className="bg-[#FBF9F8] border-b border-[#D1C5B8] sticky top-0 z-50">
@@ -53,15 +55,36 @@ export default function TopNavBar() {
             />
           </div>
 
+          <Link
+            href="/cart"
+            aria-label="Keranjang"
+            className="relative w-10 h-10 flex items-center justify-center rounded-lg border border-[#D1C5B8] text-[#1B1C1C] hover:bg-[#F6F3F2] transition-colors"
+          >
+            <IconCart className="w-5 h-5" />
+            {count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-[#725A39] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {count}
+              </span>
+            )}
+          </Link>
+
           {!loading && (
             <>
               {user ? (
-                <Link
-                  href="/profile"
-                  className="text-sm font-semibold bg-[#2D2D2D] hover:bg-[#1B1C1C] text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  {profile?.full_name || user.user_metadata?.full_name || user.email}
-                </Link>
+                <>
+                  <Link
+                    href="/orders"
+                    className="text-sm font-semibold text-[#4D453C] hover:text-[#1B1C1C] px-2 transition-colors"
+                  >
+                    Pesanan Saya
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="text-sm font-semibold bg-[#2D2D2D] hover:bg-[#1B1C1C] text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {profile?.full_name || user.user_metadata?.full_name || user.email}
+                  </Link>
+                </>
               ) : pathname !== "/login" ? (
                 <Link
                   href="/login"

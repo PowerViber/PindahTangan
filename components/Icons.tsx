@@ -296,3 +296,34 @@ export function IconBolt({ className = "w-6 h-6", style }: { className?: string;
     </svg>
   );
 }
+
+export function IconCart({ className = "w-6 h-6", style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" />
+      <circle cx="9" cy="19" r="1.5" />
+      <circle cx="17" cy="19" r="1.5" />
+    </svg>
+  );
+}
+
+export function IconQrCode({ className = "w-6 h-6", style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 14h3m4 0h0M14 18h7M18 21v-3M14 21h0m7-3.5h0" />
+    </svg>
+  );
+}
+
+export function IconCash({ className = "w-6 h-6", style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg className={className} style={style} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <circle cx="12" cy="12" r="3" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6v0M18 18v0" />
+    </svg>
+  );
+}

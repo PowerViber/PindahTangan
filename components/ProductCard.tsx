@@ -1,6 +1,10 @@
 "use client";
+import { useState, type MouseEvent } from "react";
 import Link from "next/link";
-import { IconShield } from "./Icons";
+import { useRouter } from "next/router";
+import { IconShield, IconCart, IconCheck } from "./Icons";
+import { useCart } from "../lib/CartContext";
+import { useAuth } from "../lib/AuthContext";
 
 interface ProductCardProps {
   product: {
@@ -9,6 +13,7 @@ interface ProductCardProps {
     grade: "MINT" | "GOOD" | "FAIR" | string;
     price: number | string;
     image_url?: string | null;
+    sold?: boolean;
   };
 }
 
@@ -30,9 +35,26 @@ export function formatIDR(val: number | string | null | undefined) {
   }).format(num);
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product }: Readonly<ProductCardProps>) {
+  const router = useRouter();
+  const { user } = useAuth();
   const displayGrade = (product.grade || "GOOD").toUpperCase();
   const badgeClass = gradeStyle[displayGrade] || gradeStyle.GOOD;
+  const { addToCart, isInCart } = useCart();
+  const [adding, setAdding] = useState(false);
+  const inCart = isInCart(product.id);
+
+  async function handleAddToCart(e: MouseEvent) {
+    e.preventDefault();
+    if (inCart || product.sold || adding) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setAdding(true);
+    await addToCart(product.id);
+    setAdding(false);
+  }
 
   return (
     <article className="bg-white border border-[#E8E2D9] hover:border-[#D1C5B8] rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col h-full group">
@@ -70,12 +92,26 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="font-body text-xl font-bold text-[#1B1C1C]">
             {formatIDR(product.price)}
           </span>
-          <Link
-            href={`/marketplace/${product.id}`}
-            className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
-          >
-            Lihat Detail
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAddToCart}
+              disabled={inCart || product.sold || adding}
+              title={inCart ? "Sudah di keranjang" : "Tambah ke Keranjang"}
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer disabled:cursor-default ${
+                inCart
+                  ? "bg-[#1B1C1C] border-[#1B1C1C] text-white"
+                  : "border-[#D1C5B8] text-[#1B1C1C] hover:bg-[#F6F3F2]"
+              }`}
+            >
+              {inCart ? <IconCheck className="w-4 h-4" /> : <IconCart className="w-4 h-4" />}
+            </button>
+            <Link
+              href={`/marketplace/${product.id}`}
+              className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-semibold text-xs px-4 py-2.5 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+            >
+              Lihat Detail
+            </Link>
+          </div>
         </div>
       </div>
     </article>
