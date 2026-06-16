@@ -1,0 +1,221 @@
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { IconCheck, IconShield, IconMapPin } from "../../components/Icons";
+import { formatIDR } from "../../components/ProductCard";
+
+const chartMonths = [
+  { label: "JAN", value: 134 },
+  { label: "FEB", value: 125 },
+  { label: "MAR", value: 115 },
+  { label: "APR", value: 144 },
+  { label: "MEI", value: 163 },
+  { label: "JUN", value: 192 },
+];
+
+const reasons = [
+  { title: "Kondisi Fisik",        desc: "Kondisi fisik sesuai deskripsi Anda. Tim kami akan melakukan validasi akhir saat penjemputan." },
+  { title: "Tingkat Permintaan", desc: "Perangkat ini memiliki likuiditas pasar yang tinggi di marketplace PindahTangan saat ini." },
+];
+
+export default function EstimasiPage() {
+  const router = useRouter();
+  const [submission, setSubmission] = useState<any>(null);
+  const [estimationPrice, setEstimationPrice] = useState(15000000);
+  const maxValue = Math.max(...chartMonths.map((m) => m.value));
+
+  useEffect(() => {
+    const dataStr = sessionStorage.getItem("pending_submission");
+    if (dataStr) {
+      const parsed = JSON.parse(dataStr);
+      setSubmission(parsed);
+
+      const year = parseInt(parsed.purchaseYear) || 2022;
+      const currentYear = new Date().getFullYear();
+      const age = Math.max(0, currentYear - year);
+      const calculatedEst = Math.max(2500000, 22000000 - age * 3000000);
+      setEstimationPrice(calculatedEst);
+
+      parsed.estimationPrice = calculatedEst;
+      sessionStorage.setItem("pending_submission", JSON.stringify(parsed));
+    }
+  }, []);
+
+  if (!submission) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#725A39] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 lg:px-16 py-10">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-8">
+        <span className="font-mono text-xs text-[#5F5E5E]">SUBMIT BARANG</span>
+        <IconCheck className="w-3 h-3 text-[#5F5E5E]" />
+        <span className="font-mono text-xs font-bold text-[#735A39]">ESTIMASI HARGA</span>
+        <IconCheck className="w-3 h-3 text-[#5F5E5E]" />
+        <span className="font-mono text-xs text-[#5F5E5E]">PENJEMPUTAN</span>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_380px] gap-8">
+        {/* Left column */}
+        <div className="flex flex-col gap-6">
+          <div className="bg-white border border-[#D1C4B8] rounded-xl p-8 flex flex-col gap-8 relative overflow-hidden shadow-xs">
+            <div className="flex flex-col sm:flex-row gap-8">
+              <div className="w-full sm:w-64 h-64 bg-[#EFEDED] border border-[#D1C4B8] rounded-lg flex items-center justify-center text-[#A89070] flex-shrink-0 overflow-hidden relative">
+                {submission.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={submission.imageUrl}
+                    alt={submission.productName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-10 h-10 text-[#A89070]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 flex-1 justify-center">
+                <div className="bg-[#E4E2E1] rounded-full px-3 py-1.5 w-fit flex items-center gap-1.5">
+                  <IconShield className="w-3.5 h-3.5 text-[#1B1C1C]" />
+                  <span className="font-body text-xs font-semibold text-[#1B1C1C]">Terverifikasi PindahTangan</span>
+                </div>
+                <h1 className="font-sans text-2xl font-bold text-[#1B1C1C] leading-tight">
+                  {submission.productName}
+                </h1>
+                <p className="font-body text-sm text-[#5F5E5E]">
+                  Kondisi: {submission.condition || "Baik"} · Kelengkapan: {submission.completeness || "Ada"}
+                </p>
+
+                <div className="mt-4 flex flex-col gap-1">
+                  <span className="font-mono text-xs text-[#5F5E5E] font-semibold tracking-wider">ESTIMASI HARGA TERBAIK</span>
+                  <span className="font-sans text-4xl font-bold text-[#725A39]">
+                    {formatIDR(estimationPrice)}
+                  </span>
+                  <span className="font-body text-xs font-semibold text-[#735A39] mt-0.5">Berlaku selama 7 hari</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-[#D1C4B8]" />
+
+            <div className="flex flex-col gap-4">
+              <h3 className="font-sans text-lg font-bold text-[#1B1C1C]">Mengapa harga ini?</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {reasons.map((r) => (
+                  <div key={r.title} className="bg-[#FBF9F8] border border-[#D1C4B8] rounded-xl p-4 flex flex-col gap-2 shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <IconCheck className="w-4 h-4 text-[#735A39]" />
+                      <span className="font-body text-sm font-bold text-[#1B1C1C]">{r.title}</span>
+                    </div>
+                    <p className="font-body text-xs text-[#5F5E5E] leading-relaxed">{r.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#D1C4B8] rounded-xl p-8 flex flex-col gap-8 shadow-xs">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="font-sans text-lg font-bold text-[#1B1C1C]">Tren Harga Pasar</h3>
+                <p className="font-body text-xs text-[#5F5E5E]">6 Bulan Terakhir</p>
+              </div>
+              <div className="text-right">
+                <div className="font-body text-sm font-bold text-green-600">+Rp 1.200.000</div>
+                <div className="font-mono text-[10px] font-bold text-[#5F5E5E] uppercase tracking-wider">DIBANDINGKAN ESTIMASI BULAN LALU</div>
+              </div>
+            </div>
+            <div className="flex items-end gap-2 h-44">
+              {chartMonths.map((m, i) => (
+                <div key={m.label} className="flex-1 flex flex-col items-center gap-2">
+                  <div
+                    className={`w-full rounded-t-lg transition-all duration-500 ${
+                      i === chartMonths.length - 1 ? "bg-[#C5A67F]" : "bg-[#E4E2E2]"
+                    }`}
+                    style={{ height: `${(m.value / maxValue) * 100}%` }}
+                  />
+                  <span className="font-mono text-[10px] text-[#5F5E5E] font-semibold">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="flex flex-col gap-6">
+          <div className="bg-[#E9E8E7] border border-[#D1C4B8] rounded-xl p-8 flex flex-col gap-6 shadow-xs">
+            <h3 className="font-sans text-lg font-bold text-[#1B1C1C]">Langkah Berikutnya</h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#735A39] text-white flex items-center justify-center font-body text-sm font-bold flex-shrink-0 shadow-xs">1</div>
+                <span className="font-body text-sm font-medium text-[#1B1C1C]">Setujui estimasi harga ini</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#80756A] text-[#4E453C] flex items-center justify-center font-body text-sm font-bold flex-shrink-0 shadow-xs">2</div>
+                <span className="font-body text-sm text-[#1B1C1C]">Pilih jadwal penjemputan gratis ke rumah</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#80756A] text-[#4E453C] flex items-center justify-center font-body text-sm font-bold flex-shrink-0 shadow-xs">3</div>
+                <span className="font-body text-sm text-[#1B1C1C]">QC di tempat dan pembayaran instan</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => router.push("/jual/penjadwalan")}
+                className="bg-[#303031] hover:bg-[#1B1C1C] text-[#FBF9F8] font-body font-bold py-4 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                Setuju &amp; Lanjutkan
+              </button>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("pending_submission");
+                  router.push("/dashboard");
+                }}
+                className="border border-[#735A39] text-[#735A39] font-body font-bold py-4 rounded-lg hover:bg-white transition-colors cursor-pointer"
+              >
+                Simpan sebagai Draft
+              </button>
+              <Link href="/jual" className="font-body text-xs font-semibold text-[#5F5E5E] text-center hover:underline mt-1">
+                Ganti detail barang? Edit data.
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#D1C4B8] rounded-xl p-6 flex items-start gap-4 shadow-xs">
+            <div className="w-12 h-12 bg-[#C5A67F] rounded-xl flex items-center justify-center flex-shrink-0">
+              <IconShield className="w-5 h-5 text-[#735A39]" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h4 className="font-body text-sm font-bold text-[#1B1C1C]">Janji PindahTangan</h4>
+              <p className="font-body text-xs text-[#5F5E5E] leading-relaxed">
+                Kami menjamin transparansi harga. Jika hasil inspeksi berbeda dari deskripsi, Anda akan dikonfirmasi sebelum harga final ditentukan.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#D1C4B8] rounded-xl overflow-hidden shadow-xs">
+            <div className="bg-[#F5F3F3] border-b border-[#D1C5B8] px-4 py-3 flex justify-between items-center">
+              <span className="font-body text-xs font-bold text-[#1B1C1C] uppercase tracking-wider">Layanan Penjemputan</span>
+              <span className="font-mono text-[10px] font-bold text-[#735A39]">AKTIF DI JAKARTA</span>
+            </div>
+            <div className="bg-[#E4E2E2] h-36 flex items-center justify-center text-[#7F766A] text-xs gap-2 bg-gradient-to-tr from-[#EFEDED] to-[#E4E2E2]">
+              <IconMapPin className="w-4 h-4 text-[#735A39]" />
+              Peta Layanan Jakarta Selatan
+            </div>
+            <div className="p-4">
+              <p className="font-body text-xs text-[#4E453C] leading-relaxed">
+                Kurir kami tersedia di area layanan dalam 2 jam setelah Anda menyetujui penawaran ini.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

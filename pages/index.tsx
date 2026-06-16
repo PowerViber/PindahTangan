@@ -4,7 +4,7 @@ import {
   IconClock, IconSearch, IconChart, IconStore, IconShield, IconCard,
   IconPhone, IconSneaker, IconHome, IconBook, IconSport,
   IconStar,
-} from "./components/Icons";
+} from "../components/Icons";
 
 const steps = [
   { num: "01", Icon: IconClipboard, title: "Submit Barang", desc: "Isi form singkat — nama, kategori, dan kondisi barang. Sistem kasih estimasi harga langsung." },

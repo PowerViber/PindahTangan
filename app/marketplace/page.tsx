@@ -9,12 +9,12 @@ interface Product {
 }
 
 const products: Product[] = [
-  { name: "MacBook Pro 16\" (2021)",   grade: "MINT", price: "$1,800" },
+  { name: "MacBook Pro 16\" (2021)", grade: "MINT", price: "$1,800" },
   { name: "Apple Watch Series 8, 45mm", grade: "GOOD", price: "$280" },
-  { name: "iPhone 12 Pro Max, 256GB",  grade: "FAIR", price: "$450" },
-  { name: "Sony WH-1000XM4",            grade: "GOOD", price: "$220" },
-  { name: "iPad Air (2022)",            grade: "MINT", price: "$390" },
-  { name: "Canon EOS M50 Mark II",      grade: "GOOD", price: "$540" },
+  { name: "iPhone 12 Pro Max, 256GB", grade: "FAIR", price: "$450" },
+  { name: "Sony WH-1000XM4", grade: "GOOD", price: "$220" },
+  { name: "iPad Air (2022)", grade: "MINT", price: "$390" },
+  { name: "Canon EOS M50 Mark II", grade: "GOOD", price: "$540" },
 ];
 
 const gradeStyle: Record<Product["grade"], string> = {
