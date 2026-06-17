@@ -1,26 +1,47 @@
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
-  IconChart, IconBox, IconRoute, IconSearch, IconTrendingUp, IconBolt,
+  IconChart, IconBox, IconRoute, IconSearch, IconTrendingUp, IconBolt, IconX,
 } from "./Icons";
 
 const navItems = [
-  { href: "/admin",            label: "Overview",   Icon: IconChart },
-  { href: "/admin/inventory",  label: "Inventory",   Icon: IconBox },
-  { href: "/admin/qc",         label: "QC Queue",    Icon: IconSearch },
-  { href: "/admin/logistics",  label: "Logistics",   Icon: IconRoute },
-  { href: "/admin/analytics",  label: "Analytics",   Icon: IconTrendingUp },
+  { href: "/admin",           label: "Overview",  Icon: IconChart },
+  { href: "/admin/inventory", label: "Inventory", Icon: IconBox },
+  { href: "/admin/qc",        label: "QC Queue",  Icon: IconSearch },
+  { href: "/admin/logistics", label: "Logistics", Icon: IconRoute },
+  { href: "/admin/analytics", label: "Analytics", Icon: IconTrendingUp },
 ];
 
-export default function AdminSidebar() {
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function AdminSidebar({ isOpen, onClose }: Props) {
   const router = useRouter();
   const pathname = router.pathname;
 
-  return (
+  useEffect(() => {
+    onClose();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const sidebarContent = (
     <aside className="w-64 flex-shrink-0 bg-[#F6F3F2] border-r border-[#D1C5B8] min-h-screen py-6 px-6 flex flex-col">
-      <div className="mb-12">
-        <h1 className="font-serif text-2xl font-bold text-[#1B1C1C]">PindahTangan</h1>
-        <p className="font-body text-xs font-bold text-[#4D453C] tracking-wide">REFINED LOGISTICS</p>
+      <div className="mb-12 flex items-center justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-[#1B1C1C]">PindahTangan</h1>
+          <p className="font-body text-xs font-bold text-[#4D453C] tracking-wide">REFINED LOGISTICS</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg text-[#4D453C] hover:bg-[#E8E2D9] transition-colors"
+          aria-label="Tutup menu"
+        >
+          <IconX className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="bg-[#FBF9F8] border border-[#D1C5B8] rounded-lg p-3 flex items-center gap-3 mb-12">
@@ -56,5 +77,27 @@ export default function AdminSidebar() {
         New Inspection
       </button>
     </aside>
+  );
+
+  return (
+    <>
+      {/* Desktop: static sidebar */}
+      <div className="hidden md:flex">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: overlay drawer */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={onClose}
+          />
+          <div className="relative z-10 flex">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
