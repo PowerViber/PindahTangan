@@ -108,85 +108,87 @@ export default function InventoryPage() {
           </div>
         ) : (
           <>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#F6F3F2] border-b border-[#D1C5B8] text-left">
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Product</th>
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Grade</th>
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Price</th>
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Status</th>
-                  <th className="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Sold Detail</th>
-                  <th className="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Added</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => {
-                  const st = statusInfo(p);
-                  const sale = salesByProductId[p.id];
-                  return (
-                    <tr key={p.id} className="border-b border-[#D1C5B8] last:border-0 hover:bg-[#FBF9F8] transition-colors">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#E4E2E1] border border-[#D1C5B8] rounded-sm flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {p.image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[720px]">
+                <thead>
+                  <tr className="bg-[#F6F3F2] border-b border-[#D1C5B8] text-left">
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Product</th>
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Grade</th>
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Price</th>
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Status</th>
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Sold Detail</th>
+                    <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Added</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((p) => {
+                    const st = statusInfo(p);
+                    const sale = salesByProductId[p.id];
+                    return (
+                      <tr key={p.id} className="border-b border-[#D1C5B8] last:border-0 hover:bg-[#FBF9F8] transition-colors">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#E4E2E1] border border-[#D1C5B8] rounded-sm flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {p.image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <IconBox className="w-4 h-4 text-[#7F766A]" />
+                              )}
+                            </div>
+                            <div>
+                              <span className="font-body font-bold text-[#1B1C1C]">{p.name}</span>
+                              <div className="font-mono text-[10px] text-[#7F766A] mt-0.5">
+                                {p.id.slice(0, 8).toUpperCase()}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className={`text-xs font-bold px-2 py-1 rounded-sm ${gradeStyle[p.grade] || "bg-[#E4E2E1] text-[#1B1C1C]"}`}>
+                            {p.grade || "N/A"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 font-body font-bold text-[#725A39]">
+                          {formatIDR(p.price)}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span className="flex items-center gap-1.5 font-body text-[#1B1C1C]">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: st.color }} />
+                            {st.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 font-body text-xs text-[#4D453C] min-w-48">
+                          {p.sold ? (
+                            sale ? (
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-[#1B1C1C]">{sale.buyerName}</span>
+                                <span>{sale.buyerEmail}</span>
+                                <span>
+                                  {paymentMethodLabel[sale.paymentMethod] || sale.paymentMethod} - {sale.orderStatus}
+                                </span>
+                                <span className="font-mono text-[10px] text-[#7F766A]">
+                                  #{sale.orderId.slice(0, 8).toUpperCase()} - {new Date(sale.soldAt).toLocaleDateString("id-ID")}
+                                </span>
+                              </div>
                             ) : (
-                              <IconBox className="w-4 h-4 text-[#7F766A]" />
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-body font-bold text-[#1B1C1C]">{p.name}</span>
-                            <div className="font-mono text-[10px] text-[#7F766A] mt-0.5">
-                              {p.id.slice(0, 8).toUpperCase()}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-sm ${gradeStyle[p.grade] || "bg-[#E4E2E1] text-[#1B1C1C]"}`}>
-                          {p.grade || "N/A"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 font-body font-bold text-[#725A39]">
-                        {formatIDR(p.price)}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="flex items-center gap-1.5 font-body text-[#1B1C1C]">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: st.color }} />
-                          {st.label}
-                        </span>
-                      </td>
-                      <td className="hidden md:table-cell px-4 py-4 font-body text-xs text-[#4D453C] min-w-48">
-                        {p.sold ? (
-                          sale ? (
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-[#1B1C1C]">{sale.buyerName}</span>
-                              <span>{sale.buyerEmail}</span>
-                              <span>
-                                {paymentMethodLabel[sale.paymentMethod] || sale.paymentMethod} - {sale.orderStatus}
-                              </span>
-                              <span className="font-mono text-[10px] text-[#7F766A]">
-                                #{sale.orderId.slice(0, 8).toUpperCase()} - {new Date(sale.soldAt).toLocaleDateString("id-ID")}
-                              </span>
-                            </div>
+                              <span className="text-[#7F766A]">Detail pesanan belum tersedia</span>
+                            )
                           ) : (
-                            <span className="text-[#7F766A]">Detail pesanan belum tersedia</span>
-                          )
-                        ) : (
-                          <span className="text-[#7F766A]">-</span>
-                        )}
-                      </td>
-                      <td className="hidden md:table-cell px-4 py-4 font-body text-[#4D453C]">
-                        {p.created_at
-                          ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
-                          : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <span className="text-[#7F766A]">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 font-body text-[#4D453C] whitespace-nowrap">
+                          {p.created_at
+                            ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                            : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
             <div className="bg-[#F6F3F2] border-t border-[#D1C5B8] px-4 py-3 flex items-center justify-between">
               <span className="font-body text-xs font-bold text-[#4D453C]">
                 Showing {filtered.length} of {products.length} Products
