@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { IconFilter } from "../components/Icons";
+import { IconFilter, IconSearch } from "../components/Icons";
 import { supabase } from "../lib/supabase";
 import ProductCard from "../components/ProductCard";
 
@@ -30,6 +30,7 @@ export default function MarketplacePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState("Newest");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     async function loadProducts() {
@@ -55,39 +56,50 @@ export default function MarketplacePage() {
     loadProducts();
   }, []);
 
-  const sortedProducts = [...products].sort((a, b) => {
-    if (sort === "Price Low") {
-      return Number(a.price) - Number(b.price);
-    }
-    if (sort === "Price High") {
-      return Number(b.price) - Number(a.price);
-    }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  const sortedProducts = [...products]
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (sort === "Price Low") return Number(a.price) - Number(b.price);
+      if (sort === "Price High") return Number(b.price) - Number(a.price);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   return (
     <div className="max-w-6xl mx-auto px-6 lg:px-20 py-12 flex flex-col gap-10">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2 max-w-xl">
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-[#1B1C1C]">Verified Electronics Marketplace</h1>
           <p className="font-sans text-base text-[#4D453C]">
             Kurasi terpercaya, bersertifikat, dan siap pakai. Setiap produk diinspeksi oleh ahli kami.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 border border-[#D1C5B8] rounded-full px-5 py-2.5 text-sm font-semibold text-[#1B1C1C] hover:bg-white transition-colors cursor-pointer">
-            <IconFilter className="w-4 h-4" />
-            Filter
-          </button>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="border border-[#D1C5B8] rounded-full px-5 py-2.5 text-sm font-semibold text-[#1B1C1C] bg-white focus:outline-none cursor-pointer hover:border-[#725A39]"
-          >
-            <option value="Newest">Terbaru</option>
-            <option value="Price Low">Harga Terendah</option>
-            <option value="Price High">Harga Tertinggi</option>
-          </select>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <IconSearch className="w-4 h-4 text-[#4D453C] absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Cari perangkat..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-white border border-[#D1C5B8] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#725A39] transition-all"
+            />
+          </div>
+          <div className="flex gap-3 flex-shrink-0">
+            <button className="flex items-center gap-2 border border-[#D1C5B8] rounded-full px-5 py-2.5 text-sm font-semibold text-[#1B1C1C] hover:bg-white transition-colors cursor-pointer">
+              <IconFilter className="w-4 h-4" />
+              Filter
+            </button>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="border border-[#D1C5B8] rounded-full px-5 py-2.5 text-sm font-semibold text-[#1B1C1C] bg-white focus:outline-none cursor-pointer hover:border-[#725A39]"
+            >
+              <option value="Newest">Terbaru</option>
+              <option value="Price Low">Harga Terendah</option>
+              <option value="Price High">Harga Tertinggi</option>
+            </select>
+          </div>
         </div>
       </div>
 
