@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { supabase } from "../../../lib/supabase";
 import { formatIDR } from "../../../components/ProductCard";
 import { IconArrowLeft, IconCheck, IconMapPin } from "../../../components/Icons";
+import { compressImage } from "../../../lib/imageCompressor";
 
 interface Submission {
   id: string;
@@ -40,6 +41,11 @@ export default function InspectionPage() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<"published" | "cancelled" | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -62,6 +68,39 @@ export default function InspectionPage() {
     fetchSubmission();
   }, [id]);
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setUploadError("");
+    setImagePreview(URL.createObjectURL(file));
+
+    try {
+      const compressedBlob = await compressImage(file, 1000, 1000, 0.75);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const filePath = `products/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from("PindahTangan")
+        .upload(filePath, compressedBlob, { contentType: "image/jpeg" });
+
+      if (error) throw new Error(error.message);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("PindahTangan")
+        .getPublicUrl(filePath);
+
+      setNewImageUrl(publicUrl);
+    } catch (err: any) {
+      console.error(err);
+      setUploadError("Gagal mengunggah foto. Coba lagi.");
+      setImagePreview(null);
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   async function handlePublish() {
     if (!submission) return;
     const priceNum = Number(finalPrice);
@@ -74,11 +113,13 @@ export default function InspectionPage() {
     setErrorMsg("");
 
     try {
+      const finalImageUrl = newImageUrl || submission.image_url || null;
+
       const { error: productError } = await supabase.from("products").insert({
         name: submission.product_name,
         grade,
         price: priceNum,
-        image_url: submission.image_url || null,
+        image_url: finalImageUrl,
         seller_id: submission.user_id,
         submission_id: submission.id,
       });
@@ -203,12 +244,46 @@ export default function InspectionPage() {
       <div className="grid lg:grid-cols-[1fr_380px] gap-8">
         <div className="flex flex-col gap-8">
           <div className="bg-white border border-[#D1C5B8] rounded-xl p-8 flex flex-col sm:flex-row gap-8 shadow-xs">
-            <div className="w-full sm:w-64 h-64 bg-[#EFEDED] border border-[#D1C5B8] rounded-lg flex items-center justify-center text-[#A89070] flex-shrink-0 overflow-hidden">
-              {submission.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={submission.image_url} alt={submission.product_name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="font-body text-xs text-[#7F766A]">Tidak ada gambar</span>
+            <div className="flex flex-col gap-3 flex-shrink-0">
+              <div className="w-full sm:w-64 h-64 bg-[#EFEDED] border border-[#D1C5B8] rounded-lg flex items-center justify-center text-[#A89070] overflow-hidden relative">
+                {imagePreview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    {uploadingImage && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span className="text-white text-xs font-semibold">Mengunggah...</span>
+                      </div>
+                    )}
+                  </>
+                ) : submission.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={submission.image_url} alt={submission.product_name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-body text-xs text-[#7F766A]">Tidak ada gambar</span>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="w-full sm:w-64 bg-[#F6F3F2] hover:bg-[#EFEDED] disabled:opacity-50 border border-[#D1C5B8] text-[#4D453C] font-body text-xs font-semibold py-2 rounded-lg transition-colors cursor-pointer"
+              >
+                {newImageUrl ? "Ganti Foto" : "Upload Foto Barang"}
+              </button>
+              {uploadError && (
+                <p className="font-body text-xs text-[#BA1A1A]">{uploadError}</p>
+              )}
+              {newImageUrl && (
+                <p className="font-body text-xs text-[#2E7D32]">Foto berhasil diunggah.</p>
               )}
             </div>
             <div className="flex flex-col gap-3 flex-1 justify-center">
