@@ -1,5 +1,146 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
+const GROQ_ESTIMATION_MODELS = [
+  "llama-3.1-8b-instant",
+  "meta-llama/llama-prompt-guard-2-22m",
+  "meta-llama/llama-prompt-guard-2-86m",
+] as const;
+
+type GroqModel = typeof GROQ_ESTIMATION_MODELS[number];
+
+type EstimationResponse = {
+  isElectronic: boolean;
+  error?: string;
+  price?: number;
+  reasons?: Array<{ title: string; desc: string }>;
+  trend?: Array<{ label: string; value: number }>;
+};
+
+type GroqModelState = {
+  model: GroqModel;
+  inFlight: number;
+  successes: number;
+  failures: number;
+  cooldownUntil: number;
+  lastUsedAt: number;
+};
+
+const GROQ_FAILURE_COOLDOWN_MS = 30_000;
+
+const groqModelStates: GroqModelState[] = GROQ_ESTIMATION_MODELS.map((model) => ({
+  model,
+  inFlight: 0,
+  successes: 0,
+  failures: 0,
+  cooldownUntil: 0,
+  lastUsedAt: 0,
+}));
+
+function reserveGroqModel(attemptedModels: Set<GroqModel>) {
+  const now = Date.now();
+  const unattemptedModels = groqModelStates.filter((state) => !attemptedModels.has(state.model));
+  const healthyModels = unattemptedModels.filter((state) => state.cooldownUntil <= now);
+  const candidateModels = healthyModels.length > 0 ? healthyModels : unattemptedModels;
+
+  if (candidateModels.length === 0) return null;
+
+  const selected = [...candidateModels].sort((a, b) => {
+    const aTotal = a.successes + a.failures;
+    const bTotal = b.successes + b.failures;
+
+    return (
+      a.inFlight - b.inFlight ||
+      aTotal - bTotal ||
+      a.lastUsedAt - b.lastUsedAt ||
+      a.model.localeCompare(b.model)
+    );
+  })[0];
+
+  selected.inFlight += 1;
+  selected.lastUsedAt = now;
+  return selected.model;
+}
+
+function releaseGroqModel(model: GroqModel, success: boolean) {
+  const state = groqModelStates.find((item) => item.model === model);
+  if (!state) return;
+
+  state.inFlight = Math.max(0, state.inFlight - 1);
+
+  if (success) {
+    state.successes += 1;
+    state.cooldownUntil = 0;
+  } else {
+    state.failures += 1;
+    state.cooldownUntil = Date.now() + GROQ_FAILURE_COOLDOWN_MS;
+  }
+}
+
+function parseEstimationJson(text: string): EstimationResponse {
+  const cleanText = text.replace(/```json|```/g, "").trim();
+  const data = JSON.parse(cleanText) as EstimationResponse;
+
+  if (data.isElectronic === false && data.error) {
+    return data;
+  }
+
+  if (
+    data.isElectronic === true &&
+    typeof data.price === "number" &&
+    Array.isArray(data.reasons) &&
+    Array.isArray(data.trend)
+  ) {
+    return data;
+  }
+
+  throw new Error("AI response did not match expected estimation JSON shape");
+}
+
+async function requestGroqEstimation(groqApiKey: string, model: GroqModel, prompt: string) {
+  console.log(`Using Groq API for pricing estimation with model: ${model}`);
+  const response = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${groqApiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: {
+          type: "json_object",
+        },
+        temperature: 0.1,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Groq API Error Response (${model}):`, errorText);
+    throw new Error(`Groq API returned status ${response.status}`);
+  }
+
+  const json = await response.json();
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error(`No text returned from Groq model ${model}`);
+  }
+
+  const cleanText = text.replace(/```json|```/g, "").trim();
+  console.log(`=== Groq AI Response Output (${model}) ===`);
+  console.log(cleanText);
+  console.log("=========================================");
+  return parseEstimationJson(cleanText);
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -71,55 +212,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(getFallbackEstimation(purchaseYear));
   }
 
-  // 1. Try Groq (Llama 3.3 70b)
+  // 1. Try Groq with a lightweight in-process load balancer.
   if (groqApiKey) {
-    try {
-      console.log("Using Groq API for pricing estimation...");
-      const response = await fetch(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${groqApiKey}`,
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            response_format: {
-              type: "json_object",
-            },
-            temperature: 0.1,
-          }),
-        }
-      );
+    const attemptedModels = new Set<GroqModel>();
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Groq API Error Response:", errorText);
-        throw new Error(`Groq API returned status ${response.status}`);
+    while (attemptedModels.size < GROQ_ESTIMATION_MODELS.length) {
+      const groqModel = reserveGroqModel(attemptedModels);
+      if (!groqModel) break;
+
+      attemptedModels.add(groqModel);
+
+      try {
+        const data = await requestGroqEstimation(groqApiKey, groqModel, prompt);
+        releaseGroqModel(groqModel, true);
+        return res.status(200).json(data);
+      } catch (groqError) {
+        releaseGroqModel(groqModel, false);
+        console.error(`Error with Groq model ${groqModel}, trying next model:`, groqError);
       }
-
-      const json = await response.json();
-      const text = json.choices?.[0]?.message?.content;
-      if (!text) {
-        throw new Error("No text returned from Groq");
-      }
-
-      const cleanText = text.replace(/```json|```/g, "").trim();
-      console.log("=== Groq AI Response Output ===");
-      console.log(cleanText);
-      console.log("===============================");
-      const data = JSON.parse(cleanText);
-      return res.status(200).json(data);
-    } catch (groqError) {
-      console.error("Error with Groq API, attempting Gemini fallback:", groqError);
     }
+
+    console.error("All Groq models failed, attempting Gemini fallback.");
   }
 
   // 2. Try Gemini fallback
@@ -166,7 +279,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("=== Gemini AI Response Output ===");
       console.log(cleanText);
       console.log("=================================");
-      const data = JSON.parse(cleanText);
+      const data = parseEstimationJson(cleanText);
       return res.status(200).json(data);
     } catch (geminiError) {
       console.error("Error with Gemini API, falling back to math formula:", geminiError);
