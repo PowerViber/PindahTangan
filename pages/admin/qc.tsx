@@ -48,10 +48,10 @@ export default function QCQueuePage() {
   }, []);
 
   return (
-    <div className="px-20 py-20 max-w-4xl">
-      <div className="flex flex-col gap-6 mb-14">
-        <h1 className="font-serif text-3xl font-semibold text-[#1B1C1C]">Quality Control Queue</h1>
-        <div className="grid sm:grid-cols-3 gap-4">
+    <div className="px-4 sm:px-20 py-8 sm:py-20 max-w-4xl">
+      <div className="flex flex-col gap-6 mb-10 sm:mb-14">
+        <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#1B1C1C]">Quality Control Queue</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {stats.map((s) => (
             <div key={s.label} className="bg-[#FBF9F8] border border-[#D1C5B8] rounded-lg p-6 flex items-center gap-6">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: s.bg }}>
@@ -76,9 +76,9 @@ export default function QCQueuePage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-serif text-2xl font-medium text-[#1B1C1C]">Awaiting Inspection</h2>
-          <div className="flex gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif text-xl sm:text-2xl font-medium text-[#1B1C1C]">Awaiting Inspection</h2>
+          <div className="flex gap-2">
             <button className="border border-[#7F766A] rounded-sm px-3 py-1.5 text-sm font-body font-medium text-[#1B1C1C]">Filter</button>
             <button className="border border-[#7F766A] rounded-sm px-3 py-1.5 text-sm font-body font-medium text-[#1B1C1C]">Sort: Oldest First</button>
           </div>
@@ -95,28 +95,25 @@ export default function QCQueuePage() {
         ) : (
           <div className="flex flex-col gap-3">
             {queue.map((q) => (
-              <div key={q.id} className="bg-[#FBF9F8] border border-[#D1C5B8] rounded-lg p-3 flex items-center gap-6">
+              <div key={q.id} className="bg-[#FBF9F8] border border-[#D1C5B8] rounded-lg p-3 flex items-start gap-3 sm:gap-6">
                 {q.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={q.image_url} alt={q.product_name} className="w-24 h-24 object-cover rounded-sm flex-shrink-0" />
+                  <img src={q.image_url} alt={q.product_name} className="w-16 h-16 sm:w-24 sm:h-24 object-cover rounded-sm flex-shrink-0" />
                 ) : (
-                  <div className="w-24 h-24 bg-[#E4E2E1] rounded-sm flex-shrink-0" />
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 bg-[#E4E2E1] rounded-sm flex-shrink-0" />
                 )}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="bg-[#EAE8E7] rounded-sm px-2 py-1 w-fit mb-1">
                     <span className="font-body text-xs font-medium text-[#4D453C]">{q.condition || "N/A"}</span>
                   </div>
-                  <h3 className="font-body text-lg font-medium text-[#1B1C1C]">{q.product_name}</h3>
-                  <p className="font-body text-sm text-[#4D453C]">Expected Condition: {q.condition || "N/A"}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-1 text-[#4D453C]">
-                    <IconClock className="w-3.5 h-3.5" />
-                    <span className="font-body text-sm">{timeAgo(q.created_at)}</span>
+                  <h3 className="font-body text-base sm:text-lg font-medium text-[#1B1C1C] truncate">{q.product_name}</h3>
+                  <div className="flex items-center gap-1 text-[#4D453C] mt-1">
+                    <IconClock className="w-3 h-3 flex-shrink-0" />
+                    <span className="font-body text-xs sm:text-sm">{timeAgo(q.created_at)}</span>
                   </div>
                   <Link
                     href={`/admin/qc/${q.id}`}
-                    className="bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-bold text-sm px-6 py-2 rounded-sm transition-colors"
+                    className="inline-block mt-2 bg-[#D2B48C] hover:bg-[#C5A67F] text-[#5B4526] font-body font-bold text-xs sm:text-sm px-4 sm:px-6 py-2 rounded-sm transition-colors"
                   >
                     Start Inspection
                   </Link>

@@ -66,17 +66,13 @@ export default function InventoryPage() {
   const grades = ["All Grades", ...Array.from(new Set(products.map((p) => p.grade).filter(Boolean)))];
 
   return (
-    <div className="px-12 py-10 max-w-5xl">
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="font-serif text-5xl font-semibold text-[#1B1C1C] mb-2">Inventory Directory</h1>
-          <p className="font-sans text-base text-[#4D453C]">Manage, filter, and track verified electronic assets.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="bg-[#E4E2E1] border border-[#D1C5B8] px-4 py-2.5 rounded-sm text-sm font-body font-bold text-[#1B1C1C]">
-            {products.length} Total Products
-          </span>
-        </div>
+    <div className="px-4 sm:px-12 py-6 sm:py-10 max-w-5xl">
+      <div className="mb-8 sm:mb-10">
+        <h1 className="font-serif text-3xl sm:text-5xl font-semibold text-[#1B1C1C] mb-1">Inventory Directory</h1>
+        <p className="font-sans text-base text-[#4D453C]">Manage, filter, and track verified electronic assets.</p>
+        <span className="inline-block mt-3 bg-[#E4E2E1] border border-[#D1C5B8] px-4 py-2 rounded-sm text-sm font-body font-bold text-[#1B1C1C]">
+          {products.length} Total Products
+        </span>
       </div>
 
       <div className="bg-white border border-[#D1C5B8] rounded-lg p-3 flex flex-wrap gap-3 mb-6">
@@ -119,8 +115,8 @@ export default function InventoryPage() {
                   <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Grade</th>
                   <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Price</th>
                   <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Status</th>
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Sold Detail</th>
-                  <th className="px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Added</th>
+                  <th className="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Sold Detail</th>
+                  <th className="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-[#4D453C] tracking-wide">Added</th>
                 </tr>
               </thead>
               <tbody>
@@ -161,7 +157,7 @@ export default function InventoryPage() {
                           {st.label}
                         </span>
                       </td>
-                      <td className="px-4 py-4 font-body text-xs text-[#4D453C] min-w-48">
+                      <td className="hidden md:table-cell px-4 py-4 font-body text-xs text-[#4D453C] min-w-48">
                         {p.sold ? (
                           sale ? (
                             <div className="flex flex-col gap-0.5">
@@ -181,7 +177,7 @@ export default function InventoryPage() {
                           <span className="text-[#7F766A]">-</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 font-body text-[#4D453C]">
+                      <td className="hidden md:table-cell px-4 py-4 font-body text-[#4D453C]">
                         {p.created_at
                           ? new Date(p.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
                           : "—"}

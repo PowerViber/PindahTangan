@@ -232,25 +232,25 @@ function TurnoverChart({ monthlyData }: { monthlyData: MonthlyDatum[] }) {
   const maxTurnover = Math.max(...monthlyData.flatMap((item) => [item.submissions, item.products]), 1);
 
   return (
-    <section className="bg-[#FBF9F8] border border-[#E8E2D9] rounded-lg p-10">
-      <div className="flex justify-between items-center mb-10">
-        <h2 className="font-serif text-xl font-semibold text-[#1B1C1C]">Submissions vs Products (Monthly)</h2>
-        <div className="flex gap-4 text-xs font-body text-[#4D453C]">
+    <section className="bg-[#FBF9F8] border border-[#E8E2D9] rounded-lg p-4 sm:p-10">
+      <div className="flex flex-wrap justify-between items-start gap-3 mb-6 sm:mb-10">
+        <h2 className="font-serif text-lg sm:text-xl font-semibold text-[#1B1C1C]">Submissions vs Products (Monthly)</h2>
+        <div className="flex gap-3 text-xs font-body text-[#4D453C]">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#D2B48C]" /> Submissions</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1B1C1C]" /> Products Added</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#1B1C1C]" /> Products</span>
         </div>
       </div>
-      <div className="flex items-end gap-6 h-64 border-b border-[#E8E2D9] pb-2">
+      <div className="flex items-end gap-1 sm:gap-6 h-48 sm:h-64 border-b border-[#E8E2D9] pb-2">
         {monthlyData.map((item) => (
-          <div key={item.month} className="flex-1 flex items-end justify-center gap-1">
-            <div className="w-12 rounded-t-sm bg-[#D2B48C]" style={{ height: `${Math.max((item.submissions / maxTurnover) * 100, 4)}%` }} />
-            <div className="w-12 rounded-t-sm bg-[#1B1C1C]" style={{ height: `${Math.max((item.products / maxTurnover) * 100, 4)}%` }} />
+          <div key={item.month} className="flex-1 flex items-end justify-center gap-0.5 sm:gap-1">
+            <div className="flex-1 rounded-t-sm bg-[#D2B48C]" style={{ height: `${Math.max((item.submissions / maxTurnover) * 100, 4)}%` }} />
+            <div className="flex-1 rounded-t-sm bg-[#1B1C1C]" style={{ height: `${Math.max((item.products / maxTurnover) * 100, 4)}%` }} />
           </div>
         ))}
       </div>
-      <div className="flex gap-6 mt-3">
+      <div className="flex gap-1 sm:gap-6 mt-3">
         {monthlyData.map((item) => (
-          <div key={item.month} className="flex-1 text-center font-body text-xs font-bold text-[#4D453C]">{item.month}</div>
+          <div key={item.month} className="flex-1 text-center font-body text-[10px] sm:text-xs font-bold text-[#4D453C]">{item.month}</div>
         ))}
       </div>
     </section>
@@ -306,13 +306,13 @@ export default function AnalyticsPage() {
   }, [products, submissions]);
 
   return (
-    <div className="px-12 py-10 max-w-5xl">
-      <header className="flex items-center justify-between border-b border-[#E8E2D9] pb-6 mb-10">
+    <div className="px-4 sm:px-12 py-6 sm:py-10 max-w-5xl">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E8E2D9] pb-6 mb-8 sm:mb-10">
         <div>
-          <h1 className="font-serif text-5xl font-semibold text-[#1B1C1C] mb-2">Performance Analytics</h1>
+          <h1 className="font-serif text-3xl sm:text-5xl font-semibold text-[#1B1C1C] mb-1 sm:mb-2">Performance Analytics</h1>
           <p className="font-sans text-base text-[#4D453C]">Monitoring ecosystem health and logistics throughput.</p>
         </div>
-        <button className="flex items-center gap-2 bg-[#FBF9F8] border border-[#D1C5B8] rounded-sm px-4 py-2.5">
+        <button className="flex items-center gap-2 bg-[#FBF9F8] border border-[#D1C5B8] rounded-sm px-4 py-2.5 flex-shrink-0">
           <IconClock className="w-3.5 h-3.5 text-[#4D453C]" />
           <span className="font-body text-sm font-medium text-[#1B1C1C]">All Time</span>
         </button>

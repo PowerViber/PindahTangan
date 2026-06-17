@@ -237,31 +237,38 @@ export default function LogisticsPage() {
   }, [selectedId, submissions]);
 
   return (
-    <div className="px-12 py-10 max-w-5xl">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="font-serif text-3xl font-semibold text-[#1B1C1C]">Logistics Dashboard</h1>
-        <Link
-          href="/admin/qc"
-          className="bg-[#725A39] hover:bg-[#5B4526] text-white px-5 py-2.5 rounded-sm text-sm font-body font-bold transition-colors"
-        >
-          QC Queue -&gt;
-        </Link>
+    <div className="px-4 sm:px-12 py-6 sm:py-10 max-w-5xl">
+      <div className="mb-1">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-[#1B1C1C]">Logistics Dashboard</h1>
+          <Link
+            href="/admin/qc"
+            className="bg-[#725A39] hover:bg-[#5B4526] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-sm text-sm font-body font-bold transition-colors flex-shrink-0"
+          >
+            QC Queue →
+          </Link>
+        </div>
+        <p className="font-sans text-base text-[#4D453C] mt-1">Kelola dan pantau rute pickup &amp; pengiriman secara aktif.</p>
       </div>
-      <p className="font-sans text-base text-[#4D453C] mb-8">Kelola dan pantau rute pickup &amp; pengiriman secara aktif.</p>
+      <div className="mb-8" />
 
       {loading ? (
         <LoadingBlock />
       ) : (
         <>
-          <section className="grid grid-cols-3 gap-4 mb-6">
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             {dashboard.summaryItems.map((item) => (
               <SummaryCard key={item.label} item={item} />
             ))}
           </section>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            <PickupDetail selected={dashboard.selected} />
-            <SubmissionList submissions={submissions} selectedId={selectedId} onSelect={setSelectedId} />
+            <div className="order-2 lg:order-1 lg:col-span-2">
+              <PickupDetail selected={dashboard.selected} />
+            </div>
+            <div className="order-1 lg:order-2">
+              <SubmissionList submissions={submissions} selectedId={selectedId} onSelect={setSelectedId} />
+            </div>
           </div>
         </>
       )}
